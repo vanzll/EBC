@@ -6,11 +6,11 @@ from pathlib import Path
 
 
 import pickle
-
+import torch
 import numpy as np
 from tqdm import tqdm 
 from attrdict import AttrDict
-from RL.ppo import *
+# from RL.ppo import *
 from utils.utilities import log
 from envs.brax_custom.brax_env import make_vec_env_brax
 from models.actor_critic import Actor, PGAMEActor
@@ -76,8 +76,10 @@ def config_env(env_name='ant', seed=1111):
 
     # now lets load in a saved archive dataframe and scheduler
     # change this to be your own checkpoint path
-    archive_path = f'experiments_experts/IL_ppga_{env_name}_expert/1111/checkpoints/cp_00002000/archive_df_00002000.pkl'
-    scheduler_path = f'experiments_experts/IL_ppga_{env_name}_expert/1111/checkpoints/cp_00002000/scheduler_00002000.pkl'
+    # archive_path = f'experiments_experts/IL_ppga_{env_name}_expert/1111/checkpoints/cp_00002000/archive_df_00002000.pkl'
+    # scheduler_path = f'experiments_experts/IL_ppga_{env_name}_expert/1111/checkpoints/cp_00002000/scheduler_00002000.pkl'
+    archive_path = f'experiments_experts/ppga_{env_name}_archive_bonus_wo_smooth/1111/checkpoints/cp_00002000/archive_df_00002000.pkl'
+    scheduler_path = f'experiments_experts/ppga_{env_name}_archive_bonus_wo_smooth/1111/checkpoints/cp_00002000/scheduler_00002000.pkl'
     with open(archive_path, 'rb') as f:
         archive_df = pickle.load(f)
     with open(scheduler_path, 'rb') as f:
@@ -358,7 +360,7 @@ def gen_multi_trajs(agent_type='random', num_elite=4, num_demo_per_elite=1, env_
     print(env_name, '='*100)
     env, scheduler, actor_cfg, env_cfg = config_env(env_name)
 
-    traj_root=f'trajs_{agent_type}_elite_with_measures'
+    traj_root=f'trajs_archive_bonus_wo_smooth_{agent_type}_elite_with_measures'
     if agent_type=='good_and_diverse':
         traj_root += f'_top{topk}'
     os.makedirs(traj_root,exist_ok=True)
@@ -456,7 +458,7 @@ def gen_multi_trajs(agent_type='random', num_elite=4, num_demo_per_elite=1, env_
 topk=500
 # topk='HalfMax'
 for num_elite in [4]:
-    for env_name in ['ant', ]: # , 'walker2d', 'humanoid', 'hopper', 'halfcheetah'
+    for env_name in ['humanoid', ]: # 'ant', 'walker2d', 'humanoid', 'hopper', 'halfcheetah'
         # gen_multi_trajs(agent_type='best', num_elite=num_elite, env_name=env_name)
         # gen_multi_trajs(agent_type='random', num_elite=num_elite, env_name=env_name)
         if env_name == 'ant':

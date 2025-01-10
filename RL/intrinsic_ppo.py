@@ -21,9 +21,10 @@ from tqdm import tqdm
 
 from algorithm.learn_url_reward import ICM, mCondICM, mRegICM, mCondRegICM, \
     InverseModel, ForwardDynamicsModel, GIRIL, mCondGIRIL, mRegGIRIL, mCondRegGIRIL, \
-    GAIL, VAIL, mCondGAIL, mRegGAIL, mCondRegGAIL, GIRIL, Encoder, mACGAIL, mCondACGAIL, abGAIL, mCondVAIL, PWIL
+    GAIL, VAIL, mCondGAIL, mRegGAIL, mCondRegGAIL, GIRIL, Encoder, mACGAIL, mCondACGAIL, abGAIL, mCondVAIL, PWIL, DiffAIL, ConDiff
 from algorithm.learn_url_reward import load_sa_data 
 import pdb
+from utils.diffusion import dataset_scheduler
 
 # based off of the clean-rl implementation
 # https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo_continuous_action.py
@@ -332,6 +333,28 @@ class IntrinsicPPO:
                                             )
             self.update_reward_model = False
         
+        if cfg.intrinsic_module == 'diffail':
+            self.reward_model = DiffAIL(
+                                            obs_dim,
+                                            action_dim,
+                                            device='cuda:0',
+                                            lr=3e-4,
+                                            )
+            self.dataset, self.dataloader = load_sa_data(cfg, 
+                                                         return_next_state=False)
+            self.update_reward_model = True
+        
+        if cfg.intrinsic_module == 'condiff':
+            self.reward_model = ConDiff(
+                                        obs_dim,
+                                        action_dim,
+                                        c_dim=self.cfg.num_demo,
+                                        device='cuda:0',
+                                        lr=3e-4,
+                                        )
+            self.dataset_scheduler = dataset_scheduler(cfgs= cfg)
+            self.update_reward_model = True
+        
         if cfg.intrinsic_module == 'zero':
             self.reward_model = None
 
@@ -562,16 +585,24 @@ class IntrinsicPPO:
 
         train_start = time.time()
         for update in tqdm(range(1, num_updates + 1)):
+            
             with torch.no_grad():
+                
                 for step in range(rollout_length):
+                    t_step_start = time.time()
                     global_step += self.num_envs
-
+                    
                     self.obs[step] = self.next_obs
                     self.measures[step] = self.next_measure
-
-                    action, logprob, _ = self.vec_inference.get_action(self.next_obs)
+                    
+                    t_action_start = time.time()
+                    action, logprob, _ = self.vec_inference.get_action(self.next_obs)# most time consuming
                     # b/c of torch amp, need to convert back to float32
                     action = action.to(torch.float32)
+                    t_action_end = time.time()
+                    # print('get_action time:', t_action_end - t_action_start)
+               
+           
                     if calculate_dqd_gradients:
                         next_obs = self.next_obs.reshape(num_agents, self.cfg.num_envs // num_agents, -1)
                         value = []
@@ -596,8 +627,7 @@ class IntrinsicPPO:
                     self.dones[step] = dones.view(-1)
                     measures = -infos['measures'] if negative_measure_gradients else infos['measures']
                     self.next_measure = measures
-                    # modification: moved this line to line 464, next_obs is consistent with next_measure
-                    # self.measures[step] = measures
+
                     if move_mean_agent:
                         rew_measures = torch.cat((reward.unsqueeze(1), measures), dim=1)
                         rew_measures *= self._grad_coeffs
@@ -608,18 +638,17 @@ class IntrinsicPPO:
 
                     self.next_obs = self.next_obs.to(self.device)
                     self.next_measure = self.next_measure.to(self.device)
-                    
-                    # if self.cfg.normalize_returns:
-                    #     reward = self.vec_inference.vec_normalize_returns(reward, self.next_done)
 
-                    # Calcuate_intrinsic_rewards here for imitation learning
-               
+                    t_reward_start = time.time()
                     with torch.no_grad():
                         if self.intrinsic_module == 'zero':
                             intrinsic_reward = torch.zeros((self.num_envs)).to(self.device)
-                        elif self.intrinsic_module == 'gail' or self.intrinsic_module=='vail':
+                        elif self.intrinsic_module in ['gail', 'vail', 'diffail']:
                             intrinsic_reward = self.reward_model.calculate_intrinsic_reward(
                                                 self.obs[step], action).squeeze()
+                        elif self.intrinsic_module in ['condiff']:
+                            intrinsic_reward = self.reward_model.calculate_intrinsic_reward(self.dataset_scheduler,
+                                                self.obs[step], action, current_archive).squeeze()
                         elif self.intrinsic_module in ['m_cond_gail', 'm_reg_gail', 'm_cond_reg_gail', 
                                                        'm_acgail', 'm_cond_acgail','abgail','m_cond_vail']:
                             if 'fitness_cond' in self.cfg.bonus_type:
@@ -645,11 +674,13 @@ class IntrinsicPPO:
                         else:
                             intrinsic_reward = self.reward_model.calculate_intrinsic_reward(
                                                 self.obs[step], action, self.next_obs)
-                 
-                    self.rewards[step] = torch.nan_to_num(intrinsic_reward, nan=0.0, posinf=10.0, neginf=-10.0) 
+                    
+                    self.rewards[step] = torch.nan_to_num(intrinsic_reward, nan=0.0, posinf=10.0, neginf=-10.0)
+                    t_reward_end = time.time()
+                    # print('reward time:', t_reward_end - t_reward_start)
                     
 
-
+             
                     if not calculate_dqd_gradients and not move_mean_agent:
                         if dones.any():
                             if self.cfg.intrinsic_module == 'pwil':
@@ -661,6 +692,11 @@ class IntrinsicPPO:
                             self.total_rewards[dones_bool] = 0
                             self.ep_len[dones_bool] = 0
                         self.num_intervals += 1
+
+                    t_step_end = time.time()
+                    # print('step time:', t_step_end - t_step_start)
+     
+      
                 if self.archive_bonus == True:
                     
                     self.bonus(current_archive)
@@ -694,7 +730,7 @@ class IntrinsicPPO:
                 b_advantages = advantages.transpose(0, 1).reshape(num_agents, -1)
                 b_returns = returns.transpose(0, 1).reshape(num_agents, -1)
                 b_values = self.values.transpose(0, 1).reshape(num_agents, -1)
-                
+       
 
             # end of nograd ctx
     
@@ -703,11 +739,16 @@ class IntrinsicPPO:
                                                                                                             (b_obs, b_logprobs, b_actions, b_advantages, b_returns),
                                                                                                             calculate_dqd_gradients=calculate_dqd_gradients,
                                                                                                             move_mean_agent=move_mean_agent)
-            # update reward model 
+            # update reward model
+            #time3 = time.time()
             if self.update_reward_model:
-                
-                if self.intrinsic_module in ['gail','vail','abgail']:
+                # the difference is whether to use the measures or not
+                if self.intrinsic_module in ['gail','vail','abgail','diffail']:
                     reward_loss = self.reward_model.update(self.dataloader, self.cfg.num_minibatches, 
+                                                           b_obs.detach(), b_actions.detach())        
+                if self.intrinsic_module in ['condiff']:
+                  
+                    reward_loss = self.reward_model.update(self.dataset_scheduler, self.cfg.num_minibatches, 
                                                            b_obs.detach(), b_actions.detach())        
 
                 if self.intrinsic_module in ['m_cond_gail', 'm_reg_gail', 'm_cond_reg_gail',
@@ -717,6 +758,8 @@ class IntrinsicPPO:
                                                            b_obs.detach(), b_actions.detach(), b_measures.detach())        
 
 
+            #time4 = time.time()
+            #print(f"Update reward model: {time4 - time3}")
             with torch.inference_mode():
                 y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
                 var_y = np.var(y_true)

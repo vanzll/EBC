@@ -129,23 +129,33 @@ def make_table(metric, resultsfolder,labels, games,scores,subsample=4):
             final_score=avg_score# last four evaluations
             
             if metric == 'Coverage':
-                final_score = format(final_score, "0.2f")
+                # final_score = format(final_score, "0.2f")
+                avg_score = np.mean(sc)
+                std_score = np.std(sc)
+                avg_score = format(round(avg_score,2), ",")
+                std_score = format(round(std_score,2), ",")
+                final_score = f"{avg_score}$\pm${std_score}"
                 writefile.write(r" & %s"%(final_score))
             else:
-                final_score = round(final_score)
-                final_score = format(final_score, ",")
-                writefile.write(r" & %s"%(final_score))
+                # final_score = round(final_score)
+                avg_score = np.mean(sc)
+                std_score = np.std(sc)
+                avg_score = format(round(avg_score), ",")
+                std_score = format(round(std_score), ",")
+                final_score = f"{avg_score}$\pm${std_score}"
+                # final_score = format(final_score, ",")
+                writefile.write(r" & %s "%(final_score))
         writefile.write(" \n")
         
         
 def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, best_perf, avg_perf, times, seeds, colors, markers, ext_str='', format='png'):
-    print('now plotting combined figure')
+    print('now plotting combined figure', f"{resultsfolder}/combined_{ext_str}_metrics.png")
     metrics = ["QD-Score", "Coverage(%)", "BestReward", "AverageReward"]
     score_dicts = [qd_scores, coverages, best_perf, avg_perf]
 
     # 创建大图，包含3行4列子图
     n_games = len(games)
-    fig, axes = plt.subplots(n_games, 4, figsize=(20+3, 5*n_games))
+    fig, axes = plt.subplots(n_games, 4, figsize=(20+5, 5*n_games+1))
     if n_games == 1:
         axes = np.expand_dims(axes, axis=0)
     fig.subplots_adjust(hspace=0.4, wspace=0.4)
@@ -203,11 +213,23 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
 
     # 创建一个总的图例
     if n_games == 1:
-        fig.legend(lines, labels_legend, loc='upper center', bbox_to_anchor=(0.5, 0.15), fontsize=25, ncol=len(labels))  # 增大图例字体
+        if ext_str != '_rebuttal_3':
+            
+            fig.legend(lines, labels_legend, loc='upper center', bbox_to_anchor=(0.5, 0.15), fontsize=25, ncol=len(labels))  # 增大图例字体
+        else:
+            print('too many labels!')
+            # 将图例分为两行
+            fig.legend(
+                lines,
+                labels_legend,
+                loc='upper center',
+                bbox_to_anchor=(0.5, 0.13),  # 调高位置适应两行
+                fontsize=17,
+                ncol=int(len(labels) / 2)+1  # 分两行
+            )
     else:    
         fig.legend(lines, labels_legend, loc='upper center', bbox_to_anchor=(0.5, 0.1), fontsize=25, ncol=len(labels))
-
-    # 保存大图
+    
     fig.tight_layout(rect=[0, 0.1, 1, 1])
     if format == 'both':
         fig.savefig(f"{resultsfolder}/combined_{ext_str}_metrics.png", dpi=600)
@@ -220,7 +242,7 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
 
 def make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, times_dict, seeds,ext_str):
     import csv
-    print('make_final_metrics_csv')
+    print('make_final_metrics_csv', f"{resultsfolder}/final_{ext_str}_metrics.csv")
     # 打开 CSV 文件进行写入
     with open(f"{resultsfolder}/final_{ext_str}_metrics.csv", 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -254,18 +276,26 @@ def make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, 
 
                     if len(final_values) == 0:
                         avg_final_value = np.nan  # 如果没有数据，用 NaN 表示
+                        std_final_value = np.nan
                     else:
                         # 计算种子间的平均值
                         avg_final_value = np.mean(final_values)
+                        std_final_value = np.std(final_values)
 
                     # 根据指标格式化最终值
                     if metric_name == 'Coverage':
-                        avg_final_value = f"{avg_final_value:.2f}"
+                        avg_final_value = round(avg_final_value,2)
+                        std_final_value = round(std_final_value,2)
                     else:
-                        avg_final_value = f"{avg_final_value:,.0f}"
+                        avg_final_value = round(avg_final_value)
+                        std_final_value = round(std_final_value)
+                    
+                    # avg_final_value = format(avg_final_value)
+                    # std_final_value = format(std_final_value)
+                    mean_std_final_value = f"{avg_final_value}$\pm${std_final_value}"
 
                     # 将平均最终值添加到行
-                    row.append(avg_final_value)
+                    row.append(mean_std_final_value)
                 # 写入行到 CSV 文件
                 writer.writerow(row)
 import seaborn as sns
@@ -389,6 +419,7 @@ if __name__ == '__main__':
         "mCondRegICM-FCME": ',',
         "GIRIL": ',',
         "PPGA-trueReward": '*',
+        'True Reward':'*',
         "PPGA-zeroReward": '*' ,
         'gail_single_step_bonus': ',',
         'gail_archive_bonus': ',',
@@ -413,7 +444,7 @@ if __name__ == '__main__':
     }
     colors = {
         "PPGA-trueReward": "black",#expert
-        
+        'True Reward':'black',
         'GAIL':'lightgreen',#baseline
         'VAIL':'tab:orange',#baseline
         'GIRIL':'tab:cyan',#baseline
@@ -436,7 +467,7 @@ if __name__ == '__main__':
     
     colors = {
     "PPGA-trueReward": "black",  # expert
-    
+    'True Reward':'black',
     'GAIL': 'green',    # baseline (中等的绿色)
     'VAIL': 'darkorange',        # baseline (深橙色，具有高区分度)
     'GIRIL': 'purple',       # baseline (亮蓝色，和主模型有明显区别)
@@ -454,6 +485,55 @@ if __name__ == '__main__':
     'GAIL-Obs': 'crimson'        # IFO (深红色)
 }
 
+    colors.update({
+    'PPGA-trueReward-Bonus': 'blue',  # 延续 PPGA-trueReward 的颜色
+    'MConbo-GAIL-ExpertBonus': 'firebrick',  # 延续 MConbo-GAIL 的颜色
+    'p=-2.0 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
+    'p=-1.0 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
+    'p=-0.5 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
+    'p=0 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
+    'p=0.5 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
+    'p=0.5 q=1': 'red',  # 参数配置 (鲜红色)
+    'p=0.5 q=2': 'lightcoral',  # 参数配置 (浅珊瑚色)
+    'p=1 q=0.5': 'blueviolet',  # 参数配置 (蓝紫色)
+    'p=1 q=1': 'mediumpurple',  # 参数配置 (中紫色)
+    'p=1 q=2': 'lavender',  # 参数配置 (淡紫色)
+    'p=2 q=0.5': 'darkblue',  # 参数配置 (深蓝色)
+    'p=2 q=1': 'royalblue',  # 参数配置 (皇家蓝)
+    'p=2 q=2': 'lightblue',  # 参数配置 (浅蓝色)
+    'MConbo-GAIL-10demo': 'firebrick',  # 延续 MConbo-GAIL 的颜色,
+    'MConbo-GAIL-4demo':'red',
+    'MConbo-GAIL-ExpertNoBonus':'darkblue'
+})
+
+    markers.update({
+    'PPGA-trueReward-Bonus': 'o',  # 延续 PPGA-trueReward 的标记
+    'MConbo-GAIL-ExpertBonus': ',',  # 延续 MConbo-GAIL 的标记
+    'p=-2.0 q=0.5': ',',  # 参数配置 (默认逗号)
+    'p=-1.0 q=0.5': ',',  # 参数配置 (默认逗号)
+    'p=-0.5 q=0.5': ',',  # 参数配置 (默认逗号)
+    'p=0 q=0.5': ',',  # 参数配置 (默认逗号)
+    'p=0.5 q=0.5': ',',  # 参数配置 (默认逗号)
+    'p=0.5 q=1': ',',  # 参数配置 (默认逗号)
+    'p=0.5 q=2': ',',  # 参数配置 (默认逗号)
+    'p=1 q=0.5': ',',  # 参数配置 (默认逗号)
+    'p=1 q=1': ',',  # 参数配置 (默认逗号)
+    'p=1 q=2': ',',  # 参数配置 (默认逗号)
+    'p=2 q=0.5': ',',  # 参数配置 (默认逗号)
+    'p=2 q=1': ',',  # 参数配置 (默认逗号)
+    'p=2 q=2': ',',  # 参数配置 (默认逗号)
+    'MConbo-GAIL-10demo': ',',  # 延续 MConbo-GAIL 的标记
+    'MConbo-GAIL-4demo':',',
+    'MConbo-GAIL-ExpertNoBonus':','
+})
+    markers.update({
+    'DiffAIL':',',
+    'Condiff':','
+})
+    colors.update({
+    'DiffAIL':'tab:purple',
+    'Condiff':'tab:red'
+})
 
 
 
@@ -474,6 +554,18 @@ if __name__ == '__main__':
                                     'abgail_archive_bonus_wo_smooth'
                                     #'m_cond_gail'
                                     ],
+                    'condiff':['expert',
+                                    'gail',
+                                    'diffail',
+                                    'condiff'
+                                    ],
+                   'rebuttal_5':['expert',
+                                    'gail',
+                                    'm_cond_gail_archive_bonus_wo_smooth',
+                                    
+                                    'm_cond_gail'
+                                    #'m_cond_gail'
+                                    ],
                    'gail+vail':['expert','gail','vail','giril','pwil','airl_sigmoid','irl_sigmoid','m_cond_gail_archive_bonus_wo_smooth','m_cond_vail_archive_bonus_wo_smooth'],
                    'gail_scale':['expert','gail','m_cond_gail_archive_bonus_wo_smooth'],
                    'IFO':['expert',
@@ -481,13 +573,40 @@ if __name__ == '__main__':
                           'm_cond_gail_archive_bonus_wo_smooth',
                           #'gail_wo_a',
                           #'gail'
-                          ]
+                          ],
+                   'rebuttal_1_2':['expert_archive_bonus_wo_smooth','m_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5',
+                                   'expert','m_cond_gail_archive_bonus_wo_smooth_original'],#modify data str
+                   #modify data_str to ''archive_bonus_wo_smooth_...''.
+                   'rebuttal_3':['m_cond_gail_archive_bonus_wo_smooth',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_-2.0_q_0.5',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_-1.0_q_0.5',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_-0.5_q_0.5',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_0_q_0.5',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_1',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_2',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_1_q_0.5',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_1_q_1',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_1_q_2',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_2_q_0.5',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_2_q_1',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_2_q_2'
+                                 ],
+                   'rebuttal_4':['m_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5_10demo',
+                                 'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5_4demo',
+                                 'expert']
+                   
+                   
                    
                    
                    
                    }
-    tgts = ['gail_main','vail_main','gail_ablation_bonus','gail_ablation_cond','gail_scale','IFO']
-    tgts = ['IFO']
+    # tgts = ['gail_main','vail_main','gail_ablation_bonus','gail_ablation_cond','gail_scale','IFO']
+    # tgts = ['IFO']
+    # tgts = ['rebuttal_1_2','rebuttal_3','rebuttal_4']
+    # tgts= ['rebuttal_5']
+    tgts= ['condiff']
+    # tgts = [tgt for tgt in methods_map.keys() if 'expert' in methods_map[tgt]]
+    # tgts = ['gail_scale']
     for tgt in tgts:
         print(f"Plotting {tgt}")
         format_ = 'both'
@@ -567,10 +686,24 @@ if __name__ == '__main__':
                 ext_str='_GAILs_scalability'
             if tgt == 'IFO':
                 ext_str='_IFO'
+            if tgt == 'rebuttal_1_2':
+                ext_str = '_rebuttal_1_2'
+
+            if tgt == 'rebuttal_3':
+                ext_str = '_rebuttal_3'
+            if tgt == 'rebuttal_4':
+                ext_str = '_rebuttal_4'
+            if tgt == 'rebuttal_5':
+                ext_str = '_rebuttal_5'
+            if tgt == 'condiff':
+                ext_str = '_condiff'
+            
+            
+       
                 
             
             
-            mapp = {'expert':'PPGA-trueReward',
+            mapp = {'expert':'True Reward',
                     'gail':'GAIL',
                     'giril':'GIRIL',
                     'abgail':'gail_archive_bonus',
@@ -590,7 +723,33 @@ if __name__ == '__main__':
                     'gail_wo_a':'GAIL-Obs',
                     'pwil':'PWIL',
                     'airl_sigmoid':'AIRL',
-                    'irl_sigmoid':'Max-Ent'
+                    'irl_sigmoid':'Max-Ent',
+                    'expert_archive_bonus_wo_smooth':'PPGA-trueReward-Bonus',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5':'MConbo-GAIL-ExpertBonus',
+                    'm_cond_gail_archive_bonus_wo_smooth':'p=0.5 q=0.5',
+                    'm_cond_gail_archive_bonus_wo_smooth':'MConbo-GAIL',#Based on whether to hyperparameter study
+                    'm_cond_gail_archive_bonus_wo_smooth_p_-2.0_q_0.5':'p=-2.0 q=0.5',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_-1.0_q_0.5':'p=-1.0 q=0.5',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_-0.5_q_0.5':'p=-0.5 q=0.5',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_0_q_0.5':'p=0 q=0.5',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_1':'p=0.5 q=1',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_2':'p=0.5 q=2',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_1_q_0.5':'p=1 q=0.5',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_1_q_1':'p=1 q=1',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_1_q_2':'p=1 q=2',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_2_q_0.5':'p=2 q=0.5',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_2_q_1':'p=2 q=1',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_2_q_2':'p=2 q=2',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5_10demo':'MConbo-GAIL-10demo',
+                    'm_cond_gail_archive_bonus_wo_smooth_original':'MConbo-GAIL-ExpertNoBonus',
+                    'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5_4demo':'MConbo-GAIL-4demo',
+                    'diffail':'DiffAIL',
+                    'condiff':'Condiff'
+                    
+                    
+                                 
+                    
+                    
                     
                     
                     }
@@ -627,9 +786,10 @@ if __name__ == '__main__':
 
 
         # games = ["humanoid","halfcheetah"] #  "ant" "walker2d",
-        
+        seeds=[1111,2222,3333] #,2222
         games = ["halfcheetah","walker2d","humanoid"]
         num_demos=[4]
+        data_str='good_and_diverse_elite_with_measures_top500'
         if tgt == 'gail_ablation_bonus':
             games = ["walker2d"]
         if tgt == 'gail_ablation_cond':
@@ -639,12 +799,35 @@ if __name__ == '__main__':
             num_demos = [1,2,4]
         if tgt == 'IFO':
             pass
-        seeds=[1111,2222,3333] #,2222
+        if tgt == 'rebuttal_1_2':
+            games =['humanoid']
+            seeds=[1111,2222]
+            num_demos = [4]
+            data_str = 'archive_bonus_wo_smooth_good_and_diverse_elite_with_measures_top500'
+        if tgt == 'rebuttal_3':
+            data_str='good_and_diverse_elite_with_measures_top500'
+            games =['humanoid']
+            seeds=[1111,2222]
+            num_demos = [4]
+        if tgt == 'rebuttal_4':
+            data_str='good_and_diverse_elite_with_measures_top500'
+            games =['humanoid']
+            seeds=[1111,2222]
+            num_demos = [10]
+        if tgt == 'rebuttal_5':
+            data_str='good_and_diverse_elite_with_measures_top500'
+            games = ['halfcheetah','humanoid','walker2d',]
+            seeds = [1111,2222,3333]
+            num_demos = [4]
+            
+            
+            
+        
         
         #num_demos = [1,2,4]
-        data_str='good_and_diverse_elite_with_measures_top500'
+        
         # data_str='good_and_diverse_elite_with_measures_topHalfMax'
-        # num_demo=4
+        num_demo=4
         
         # num_demo=16
         # num_demo=64
@@ -656,6 +839,11 @@ if __name__ == '__main__':
             
             results_dict= {game: get_method_scores(resultsfolder,game,methods,labels,seeds) for game in games}
             # times, qd_scores, coverages, best_perf, avg_perf
+            
+            
+            # resultsfolder = f'experiments_change_name' # for change name, otherwise omit this line!
+            # ext_str = ext_str + str(num_demo)
+            ext_str = ext_str
             times_dict = {game: results_dict[game][0] for game in games}
             qd_scores_dict = {game: results_dict[game][1] for game in games}
             coverages_dict = {game: results_dict[game][2] for game in games}
@@ -666,7 +854,7 @@ if __name__ == '__main__':
             make_table("BestReward", resultsfolder,labels, games, best_perf_dict)
             make_table("AverageReward", resultsfolder,labels, games, avg_perf_dict)
             
-            if ext_str == '_GAILs+VAILs' or ext_str == '_GAILs_scalability' or ext_str == '_IFO':
+            if ext_str == '_GAILs+VAILs' or ext_str == '_GAILs_scalability' or ext_str == '_IFO' or ext_str =='_rebuttal_1_2' or ext_str == '_rebuttal_3' or ext_str == '_rebuttal_4' or ext_str =='_rebuttal_5':
                 metrics = ['QD-Score', 'Coverage', 'BestReward', 'AverageReward']
                 scores_dicts = [qd_scores_dict, coverages_dict, best_perf_dict, avg_perf_dict]
                 make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, times_dict, seeds,ext_str)

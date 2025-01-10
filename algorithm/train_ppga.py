@@ -32,6 +32,11 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_name', type=str)
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--archive_bonus', default=False,type=lambda x: bool(strtobool(x)))
+    parser.add_argument('--bonus_smooth', default=True,type=lambda x: bool(strtobool(x)))
+    parser.add_argument('--wo_a', type=lambda x: bool(strtobool(x)), default=False)
+    parser.add_argument('--p',type=float,default=0.5)
+    parser.add_argument('--q',type=float,default=0.5)
     parser.add_argument("--torch_deterministic", type=lambda x: bool(strtobool(x)), default=False, nargs="?",
                         const=True,
                         help="if toggled, `torch.backends.cudnn.deterministic=False`")
@@ -208,14 +213,14 @@ def create_scheduler(cfg: AttrDict,
                               learning_rate=archive_learning_rate,
                               threshold_min=threshold_min,
                               seed=cfg.seed,
-                              qd_offset=qd_offset)
+                              qd_offset=qd_offset,cfg = cfg)
 
         if use_result_archive:
             result_archive = GridArchive(solution_dim=solution_dim,
                                          dims=archive_dims,
                                          ranges=bounds,
                                          seed=cfg.seed,
-                                         qd_offset=qd_offset)
+                                         qd_offset=qd_offset, cfg = cfg)
 
     ppo = PPO(cfg)
 
@@ -352,14 +357,14 @@ def train_ppga(cfg: AttrDict, vec_env):
         if cfg.normalize_returns:
             if scheduler.emitters[0].mean_agent_return_normalizer is not None:
                 mean_agent.return_normalizer = scheduler.emitters[0].mean_agent_return_normalizer
-
+        
         ppo.agents = [mean_agent]
         # calculate gradients of f and m
         objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
                                                        num_updates=cfg.calc_gradient_iters,
                                                        rollout_length=cfg.rollout_length,
                                                        calculate_dqd_gradients=True,
-                                                       negative_measure_gradients=False)
+                                                       negative_measure_gradients=False, current_archive = scheduler.archive)
 
         # for plotting purposes
         # emitter_loc = (measures[0][0], measures[0][1])
@@ -423,7 +428,7 @@ def train_ppga(cfg: AttrDict, vec_env):
                   num_updates=cfg.move_mean_iters,
                   rollout_length=cfg.rollout_length,
                   calculate_dqd_gradients=False,
-                  move_mean_agent=True)
+                  move_mean_agent=True, current_archive = scheduler.archive)
 
         # get the resulting new mean solution point and update the scheduler
         trained_mean_agent = ppo.agents[0]

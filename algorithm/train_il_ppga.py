@@ -36,6 +36,8 @@ def parse_args():
     parser.add_argument('--env_name', type=str)
     parser.add_argument('--bonus_smooth', default=True,type=lambda x: bool(strtobool(x)))
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--p',type=float,default=0.5)
+    parser.add_argument('--q',type=float,default=0.5)
     parser.add_argument('--wo_a', type=lambda x: bool(strtobool(x)), default=False)
     parser.add_argument('--intrinsic_module', type=str, default='gail')
     parser.add_argument('--reward_save_dir', type=str, 
@@ -549,8 +551,8 @@ if __name__ == '__main__':
         outdir = os.path.join(f'{cfg.expdir}_AuxLoss_{cfg.auxiliary_loss_fn}_Bonus_{cfg.bonus_type}', str(cfg.seed))
             
     cfg.outdir = outdir
-    assert not os.path.exists(outdir) or cfg.load_scheduler_from_cp is not None or cfg.load_archive_from_cp is not None, \
-        f"Warning: experiment dir {outdir} exists. Danger of overwriting previous run"
+    """ assert not os.path.exists(outdir) or cfg.load_scheduler_from_cp is not None or cfg.load_archive_from_cp is not None, \
+        f"Warning: experiment dir {outdir} exists. Danger of overwriting previous run" """
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 

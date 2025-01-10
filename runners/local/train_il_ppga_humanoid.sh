@@ -4,12 +4,12 @@ export XLA_PYTHON_CLIENT_PREALLOCATE=false
 ENV_NAME="humanoid"
 GRID_SIZE=50  # number of cells per archive dimension
 SEED=1111
-SEED=2222
+#SEED=2222
 #SEED=3333
 # bonus_type='weighted_fitness_cond_measure_entropy'
 # bonus_type='fitness_cond_measure_entropy'
-bonus_type='measure_entropy'
-bonus_type='single_step_bonus'
+# bonus_type='measure_entropy'
+# bonus_type='single_step_bonus'
 bonus_type='None'
 # bonus_type='measure_error'
 
@@ -28,6 +28,8 @@ auxiliary_loss_fn='MSE'
 # auxiliary_loss_fn='NLL'
 
 intrinsic_module='m_cond_gail'
+intrinsic_module='diffail'
+intrinsic_module='condiff'
 #intrinsic_module='m_cond_vail'
 #intrinsic_module='m_reg_gail'
 #intrinsic_module='m_cond_reg_gail'
@@ -42,28 +44,32 @@ gail_batchsize=200
 
 echo $RUN_NAME
 data_str=good_and_diverse_elite_with_measures_top500
-
+# data_str=archive_bonus_wo_smooth_$data_str
 # cp_dir=./experiments_${num_demo}_${data_str}/$GROUP_NAME/${SEED}/checkpoints
 # cp_iter=00000740
 # scheduler_cp=${cp_dir}/cp_${cp_iter}/scheduler_${cp_iter}.pkl
 # archive_cp=${cp_dir}/cp_${cp_iter}/archive_df_${cp_iter}.pkl
-archive_bonus=True
+archive_bonus=False
 if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi
-wo_a=True
+wo_a=False
 if [ "$wo_a" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_a"
 fi
 
 bonus_smooth=False
-if [ "$bonus_smooth" = "False" ]; then
+if [ "$bonus_smooth" = "False" ] && [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_smooth"
 fi
-
+p=-2.0
+q=0.5
+# GROUP_NAME="${GROUP_NAME}_p_${p}_q_${q}"
 python -m algorithm.train_il_ppga --env_name=$ENV_NAME \
                                 --bonus_smooth=${bonus_smooth} \
                                 --wo_a=${wo_a} \
+                                --p=${p} \
+                                --q=${q} \
                                 --archive_bonus=${archive_bonus} \
                                 --save_heatmaps=False \
                                 --save_scheduler=False \

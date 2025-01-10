@@ -341,45 +341,6 @@ class GridArchive(ArchiveBase):
         # Step 6: 返回计算结果
         return bonus
 
-    def cal_coef(self, expert_measures):
-        '''
-        expert_measure: [num_experts, measure_dims] [128, 3000, 2], and {0,1}
-        return: (num_experts,)
-        '''
-        
-        # Step 1: 计算当前 batch 的 measure 并获取其对应的网格索引
-        total_measure = expert_measures  # [3000, 2]
-        idx = self.index_of(total_measure.cpu().numpy())  # (batch_size,) array of integer indices representing the flattened grid coordinates.
-        grid_idx = self.int_to_grid_index(idx)  # 转换成网格坐标 [batch_size, num_dims]
-        
-       
-        # Step 2: 提取已占据的网格
-        occupied_indices = np.where(self._occupied_arr)[0]  # 获得已占据的网格的整数索引
-        occupied_grid_idx = self.int_to_grid_index(occupied_indices)  # 转换成网格坐标 [n_occupied, num_dims]
-        
-        # Step 3: 使用 KDE 拟合已占据网格的分布
-        if len(occupied_grid_idx) == 0:
-            n_experts = expert_measures.shape[0]
-            return torch.ones(n_experts, device='cuda:0') / n_experts
-        
-        kde = KernelDensity(kernel='gaussian', bandwidth=1.0)
-        kde.fit(occupied_grid_idx)
-        time1 = time.time()
-        
-        # Step 4: 计算当前 batch 的网格的概率密度
-        log_density = kde.score_samples(grid_idx)
-        density = np.exp(log_density)
-        time2 = time.time()
-        #print('time for fitting distribution:', time2-time1)
-        
-    
-        sparsity = 1/(density+1e-8)
-        coef = sparsity/np.sum(sparsity)
-        coef_tensor = torch.from_numpy(coef).to('cuda:0')
-        
-  
-        return coef_tensor
-
         
         
         

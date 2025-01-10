@@ -3,7 +3,7 @@
 ENV_NAME="walker2d"
 GRID_SIZE=50  # number of cells per archive dimension
 SEED=1111
-SEED=2222
+#SEED=2222
 #SEED=3333
 # bonus_type='weighted_fitness_cond_measure_entropy'
 # bonus_type='fitness_cond_measure_entropy'
@@ -27,6 +27,8 @@ auxiliary_loss_fn='MSE'
 # auxiliary_loss_fn='NLL'
 
 intrinsic_module='m_cond_gail'
+intrinsic_module='diffail'
+intrinsic_module='condiff'
 #intrinsic_module='m_cond_vail'
 #intrinsic_module='m_reg_gail'
 #intrinsic_module='m_cond_reg_gail'
@@ -40,12 +42,12 @@ num_demo=4
 gail_batchsize=120
 echo $RUN_NAME
 data_str=good_and_diverse_elite_with_measures_top500
-archive_bonus=True
+archive_bonus=False
 if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi
 
-wo_a=True
+wo_a=False
 if [ "$wo_a" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_a"
 fi

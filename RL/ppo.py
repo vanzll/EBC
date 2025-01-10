@@ -104,6 +104,7 @@ class PPO:
         self._grad_coeffs[0] = 1.0  # default grad coefficients optimizes objective only
         self.obs_measure_coeffs = torch.zeros((cfg.rollout_length, self.num_envs,
                                                self.obs_shape[0] + self.cfg.num_dims + 1)).to(self.device)
+        self.archive_bonus = cfg.archive_bonus
 
     @property
     def agents(self):
@@ -285,9 +286,19 @@ class PPO:
                     break
 
         return pg_loss, v_loss, entropy_loss, old_approx_kl, approx_kl, clipfracs, ratio
+    def bonus(self, current_archive):
+        '''
+        modify self.rewards with archive bonus based on measures
+        please refer to _grid_archive.py for more details about archive operation.
+        self.rewards: [rollout_length, num_envs] [128,3000]
+        self.measures: [rollout_length, num_envs, num_dims] [128,3000,2], and {0,1}
+        '''
+        bonus = current_archive.cal_bonus(self.measures)
+        self.rewards = self.rewards + torch.tensor(bonus).to(self.device)
+        pass
 
     def train(self, vec_env, num_updates, rollout_length, calculate_dqd_gradients=False, move_mean_agent=False,
-              negative_measure_gradients=False):
+              negative_measure_gradients=False, current_archive = None):
         global_step = 0
         self.next_obs = vec_env.reset()
         if self.cfg.normalize_obs:
@@ -365,7 +376,9 @@ class PPO:
                             self.total_rewards[dones_bool] = 0
                             self.ep_len[dones_bool] = 0
                         self.num_intervals += 1
-
+                if self.archive_bonus == True:
+                    
+                    self.bonus(current_archive)
                 if calculate_dqd_gradients:
                     envs_per_dim = self.cfg.num_envs // (self.cfg.num_dims + 1)
                     mask = torch.eye(self.cfg.num_dims + 1)

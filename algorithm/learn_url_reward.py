@@ -3,6 +3,7 @@ import os
 import os.path as osp
 import pdb
 import torch
+import time
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -16,7 +17,7 @@ import os
 import os.path as osp
 from torch import nn
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
-
+from tqdm import tqdm
 from algorithm.data_loader import ExpertDataset
 from torch.utils.data import DataLoader
 
@@ -27,8 +28,10 @@ import pdb
 
 from math import ceil, exp, sqrt
 from typing import Dict, Optional, Tuple
-
-
+#from ddpm_disc.ddpm_disc_model import *
+from ddpm_disc.diffusion.diffusion import Diffusion
+from ddpm_disc.diffusion.model import MLP
+from utils.diffusion import dataset_scheduler
 def process(tensor, normalize=False, range=None, scale_each=False):
     """Make a grid of images.
     Args:
@@ -323,7 +326,7 @@ class GAILdiscriminator_wo_a(nn.Module):
         x = self.output(x)
         return x
     
-    
+
     
     
     
@@ -513,7 +516,7 @@ class ACGAILdiscriminator(nn.Module):
         m = self.output_m(x)
         return d, m
     
-### GAIL 
+### reward model: GAIL 
 class GAIL(object):
     def __init__(self,
                  obs_dim,
@@ -654,6 +657,460 @@ class GAIL(object):
                 return reward 
             else:
                 return reward / np.sqrt(self.ret_rms.var[0] + alpha)
+# DiffAIL discriminator
+class DiffAILDiscriminator(nn.Module):
+    def __init__(self, input_dim, hidden_dim, action_dim, beta_schedule='linear', n_timesteps=100, lr=0.0003, disc_momentum = 0.999,
+                 device='cuda:0', clamp_magnitude=10.0):
+        super(DiffAILDiscriminator, self).__init__()
+        self.input_dim = input_dim
+        self.action_dim = action_dim
+        self.hidden = hidden_dim
+        self.device = device
+        # Core network
+        self.model = MLP(x_dim=input_dim+action_dim, hid_dim=hidden_dim, device=device)
+        self.diffusion = Diffusion(input_dim, action_dim, self.model, 1.0,
+                                 beta_schedule=beta_schedule, n_timesteps=n_timesteps,
+                                 clamp_magnitude=clamp_magnitude).to(device)
+        self.diff_optim = torch.optim.Adam(self.diffusion.parameters(), lr=lr, betas=(disc_momentum, 0.999))
+    def forward(self, x):
+        batch = x.to(self.device)
+
+        disc_cost = self.diffusion.calc_reward(batch)
+
+
+        return disc_cost
+
+
+class DiffAIL(object):
+    def __init__(self,
+                obs_dim,
+                action_dim,
+                device='cuda:0',
+                lr=3e-4,
+                beta_schedule='linear',
+                n_timesteps=100,
+                use_grad_pen=True,
+                grad_pen_weight=10.0,
+                max_action=1.0,
+                disc_hid_dim=100,
+                disc_momentum=0.9
+                ):
+        
+        self.device = device
+        self.action_dim = action_dim
+        self.use_grad_pen = use_grad_pen
+        self.grad_pen_weight = grad_pen_weight
+        
+        # 使用与原始实现相同的模型结构
+        self.model = MLP(x_dim=obs_dim+action_dim, hid_dim=disc_hid_dim, device=device)
+        self.discriminator = DiffAILDiscriminator(
+            input_dim=obs_dim,
+            hidden_dim=disc_hid_dim,
+            action_dim=action_dim,
+            beta_schedule=beta_schedule,
+            n_timesteps=n_timesteps,
+            device=device,
+     
+            disc_momentum=disc_momentum,
+            lr=lr
+        )
+        self.returns = None
+        self.lr = lr
+        self.intrinsic_reward_rms = RMS(device=self.device)
+
+    def compute_grad_pen(self,
+                        expert_data,
+                        policy_data,
+                        lambda_=10):
+        
+        alpha = torch.rand_like(expert_data).to(expert_data.device)
+        mixup_data = alpha * expert_data + (1 - alpha) * policy_data
+        mixup_data.requires_grad = True
+
+        disc = self.discriminator(mixup_data)
+        grad = autograd.grad(
+            outputs=disc.sum(),
+            inputs=mixup_data,
+            create_graph=True,
+            retain_graph=True,
+            only_inputs=True)[0]
+
+        grad_pen = lambda_ * (grad.norm(2, dim=1) - 1).pow(2).mean()
+        return grad_pen
+
+    def feed_forward_generator(self,
+                             b_obs,
+                             b_actions,
+                             num_minibatches,
+                             minibatch_size):
+        batch_size = b_obs.shape[1]
+        sampler = BatchSampler(
+            SubsetRandomSampler(range(batch_size)),
+            minibatch_size,
+            drop_last=True)
+        for indices in sampler:
+            obs_batch = b_obs.view(-1, b_obs.shape[-1])[indices]
+            actions_batch = b_actions.view(-1, b_actions.shape[-1])[indices]
+            yield obs_batch, actions_batch
+
+    def update(self, expert_loader, num_minibatches, b_obs, b_actions, obsfilt=None):
+        policy_data_generator = self.feed_forward_generator(
+            b_obs, b_actions, num_minibatches, expert_loader.batch_size)
+
+        loss = 0
+        n = 0
+
+        for expert_batch, policy_batch in tqdm(zip(expert_loader, policy_data_generator), desc="Training discriminator",total=len(expert_loader)):
+            # 获取policy数据
+            #time
+            import time
+            begin_time = time.time()
+            policy_state, policy_action = policy_batch[0], policy_batch[1]
+            policy_disc_input = torch.cat([policy_state, policy_action], dim=1)  # 注意这里action在前
+            
+            # 获取expert数据
+            expert_state, expert_action, _ = expert_batch
+            if obsfilt is not None:
+                expert_state = obsfilt(expert_state.numpy(), update=False)
+            expert_state = torch.FloatTensor(expert_state).to(self.device)
+            expert_action = expert_action.to(self.device)
+            expert_disc_input = torch.cat([expert_state, expert_action], dim=1)  # 注意这里action在前
+
+            # 计算discriminator loss
+            expert_d = self.discriminator.diffusion.loss(expert_disc_input, disc_ddpm=True).unsqueeze(dim=1)
+            policy_d = self.discriminator.diffusion.loss(policy_disc_input, disc_ddpm=True).unsqueeze(dim=1)
+            
+            # 使用BCE loss
+            expert_loss = F.binary_cross_entropy_with_logits(
+                expert_d,
+                torch.ones(expert_d.size()).to(self.device))
+            policy_loss = F.binary_cross_entropy_with_logits(
+                policy_d,
+                torch.zeros(policy_d.size()).to(self.device))
+
+            gail_loss = expert_loss + policy_loss
+
+            # 计算梯度惩罚
+            if self.use_grad_pen:
+                eps = torch.rand(expert_state.size(0), 1).to(self.device)
+                interp_obs = eps * expert_disc_input + (1 - eps) * policy_disc_input
+                interp_obs = interp_obs.detach()
+                interp_obs.requires_grad_(True)
+
+                out = self.discriminator.diffusion.loss(interp_obs, disc_ddpm=True).sum()
+
+                gradients = autograd.grad(
+                    outputs=out,
+                    inputs=interp_obs,
+                    create_graph=True,
+                    retain_graph=True,
+                    only_inputs=True,
+                )[0]
+
+                gradient_penalty = (gradients.norm(2, dim=1) - 1).pow(2).mean()
+                grad_pen_loss = gradient_penalty * self.grad_pen_weight
+                total_loss = gail_loss + grad_pen_loss
+            else:
+                total_loss = gail_loss
+
+            loss += total_loss.item()
+            n += 1
+
+            # 优化器步骤
+            self.discriminator.diff_optim.zero_grad()
+            total_loss.backward()
+            self.discriminator.diff_optim.step()
+
+            end_time = time.time()
+            print(f"Time taken for one batch: {end_time - begin_time} seconds")
+
+        return loss / n
+
+    def calculate_intrinsic_reward(self, state, action,
+                                 use_original_reward=True, alpha=1e-8):
+        with torch.no_grad():
+            disc_input = torch.cat([state, action], dim=1)
+            #time_start = time.time()
+            d = self.discriminator(disc_input)
+            #time_end = time.time()
+            #print(f'discriminator time: {time_end-time_start:.4f}s')
+            
+            
+            reward = -torch.log(1 - d + alpha)
+            
+            if self.returns is None:
+                self.returns = reward.clone()
+
+            if use_original_reward:
+                return reward
+            else:
+                return reward / np.sqrt(self.ret_rms.var[0] + alpha)
+
+
+
+class Condiff_Discriminator(nn.Module):
+    def __init__(self, input_dim, hidden_dim, action_dim, c_dim,beta_schedule='linear', n_timesteps=100, lr=0.0003, disc_momentum = 0.999,
+                 device='cuda:0', clamp_magnitude=10.0):
+        super(Condiff_Discriminator, self).__init__()
+        self.input_dim = input_dim
+        self.action_dim = action_dim
+        self.hidden = hidden_dim
+        self.c_dim = c_dim
+        self.device = device
+        # Core network
+        self.model = MLP(x_dim=input_dim+action_dim+c_dim, hid_dim=hidden_dim, device=device)
+        self.diffusion = Diffusion(input_dim + c_dim, action_dim, self.model, 1.0,
+                                 beta_schedule=beta_schedule, n_timesteps=n_timesteps,
+                                 clamp_magnitude=clamp_magnitude).to(device)
+        self.diff_optim = torch.optim.Adam(self.diffusion.parameters(), lr=lr, betas=(disc_momentum, 0.999))
+
+    def forward(self, x):
+        batch = x.to(self.device)
+     
+        disc_cost = self.diffusion.calc_reward(batch) #most time consuming
+     
+
+        return disc_cost
+
+class ConDiff(object):
+    def __init__(self,
+                obs_dim,
+                action_dim,
+                c_dim,
+                device='cuda:0',
+                lr=3e-4,
+                beta_schedule='linear',
+                n_timesteps=100,
+                use_grad_pen=True,
+                grad_pen_weight=10.0,
+                max_action=1.0,
+                disc_hid_dim=100,
+                disc_momentum=0.9
+                ):
+        
+        self.device = device
+        self.action_dim = action_dim
+        self.use_grad_pen = use_grad_pen
+        self.grad_pen_weight = grad_pen_weight
+        
+        # 使用与原始实现相同的模型结构
+       
+        self.discriminator = Condiff_Discriminator(
+            input_dim=obs_dim,
+            hidden_dim=disc_hid_dim,
+            action_dim=action_dim,
+            c_dim=c_dim,
+            beta_schedule=beta_schedule,
+            n_timesteps=n_timesteps,
+            device=device,
+     
+            disc_momentum=disc_momentum,
+            lr=lr
+        )
+        self.returns = None
+        self.lr = lr
+        self.intrinsic_reward_rms = RMS(device=self.device)
+
+    def compute_grad_pen(self,
+                        expert_data,
+                        policy_data,
+                        lambda_=10):
+        
+        alpha = torch.rand_like(expert_data).to(expert_data.device)
+        mixup_data = alpha * expert_data + (1 - alpha) * policy_data
+        mixup_data.requires_grad = True
+
+        disc = self.discriminator(mixup_data)
+        grad = autograd.grad(
+            outputs=disc.sum(),
+            inputs=mixup_data,
+            create_graph=True,
+            retain_graph=True,
+            only_inputs=True)[0]
+
+        grad_pen = lambda_ * (grad.norm(2, dim=1) - 1).pow(2).mean()
+        return grad_pen
+
+    def feed_forward_generator(self,
+                             b_obs,
+                             b_actions,
+                             num_minibatches,
+                             minibatch_size):
+        batch_size = b_obs.shape[1]
+        sampler = BatchSampler(
+            SubsetRandomSampler(range(batch_size)),
+            minibatch_size,
+            drop_last=True)
+        for indices in sampler:
+            obs_batch = b_obs.view(-1, b_obs.shape[-1])[indices]
+            actions_batch = b_actions.view(-1, b_actions.shape[-1])[indices]
+            yield obs_batch, actions_batch
+    
+
+    def update(self, dataset_scheduler: dataset_scheduler, num_minibatches, b_obs, b_actions, obsfilt=None):
+        split_data = dataset_scheduler.splited_data # dict of dataset and dataloader, and the measure of each expert
+        for expert_idx, data in split_data.items():
+            dataset, dataloader, measure,c = data['dataset'], data['dataloader'], data['measure'], data['c']
+            # c: Tensor of shape (c_dim)
+            self.update_one_expert(dataloader, c, num_minibatches, b_obs, b_actions, obsfilt)
+
+    def update_one_expert(self, expert_loader, c_array, num_minibatches, b_obs, b_actions, obsfilt=None):
+        '''
+        c: Tensor of shape (c_dim)
+        '''
+        policy_data_generator = self.feed_forward_generator(
+            b_obs, b_actions, num_minibatches, expert_loader.batch_size)
+
+        loss = 0
+        n = 0
+        c_array = c_array.to(self.device)
+        for expert_batch, policy_batch in tqdm(zip(expert_loader, policy_data_generator), desc="Training discriminator",total=len(expert_loader)):
+            # 获取policy数据
+            #time
+   
+           
+            policy_state, policy_action = policy_batch[0], policy_batch[1]
+            # expand c (c_dim) to (batch_size, c_dim)
+            c_array_policy = c_array.unsqueeze(0).repeat(policy_state.size(0), 1)
+
+            policy_disc_input = torch.cat([policy_state, policy_action, c_array_policy], dim=1) 
+            
+            # 获取expert数据
+            expert_state, expert_action, _ = expert_batch
+            if obsfilt is not None:
+                expert_state = obsfilt(expert_state.numpy(), update=False)
+            expert_state = torch.FloatTensor(expert_state).to(self.device)
+            expert_action = expert_action.to(self.device)
+            c_array_expert = c_array.unsqueeze(0).repeat(expert_state.size(0), 1)
+            expert_disc_input = torch.cat([expert_state, expert_action, c_array_expert], dim=1)  
+
+            # 计算discriminator loss
+            expert_d = self.discriminator.diffusion.loss(expert_disc_input, disc_ddpm=True).unsqueeze(dim=1)
+            policy_d = self.discriminator.diffusion.loss(policy_disc_input, disc_ddpm=True).unsqueeze(dim=1)
+            
+            # 使用BCE loss
+            expert_loss = F.binary_cross_entropy_with_logits(
+                expert_d,
+                torch.ones(expert_d.size()).to(self.device))
+            policy_loss = F.binary_cross_entropy_with_logits(
+                policy_d,
+                torch.zeros(policy_d.size()).to(self.device))
+
+            gail_loss = expert_loss + policy_loss
+
+            # 计算梯度惩罚
+            if self.use_grad_pen:
+                eps = torch.rand(expert_state.size(0), 1).to(self.device)
+                interp_obs = eps * expert_disc_input + (1 - eps) * policy_disc_input
+                interp_obs = interp_obs.detach()
+                interp_obs.requires_grad_(True)
+
+                out = self.discriminator.diffusion.loss(interp_obs, disc_ddpm=True).sum()
+
+                gradients = autograd.grad(
+                    outputs=out,
+                    inputs=interp_obs,
+                    create_graph=True,
+                    retain_graph=True,
+                    only_inputs=True,
+                )[0]
+
+                gradient_penalty = (gradients.norm(2, dim=1) - 1).pow(2).mean()
+                grad_pen_loss = gradient_penalty * self.grad_pen_weight
+                total_loss = gail_loss + grad_pen_loss
+            else:
+                total_loss = gail_loss
+
+            loss += total_loss.item()
+            n += 1
+
+            # 优化器步骤
+            self.discriminator.diff_optim.zero_grad()
+            total_loss.backward()
+            self.discriminator.diff_optim.step()
+
+      
+
+        return loss / n
+
+    def calculate_intrinsic_reward(self, dataset_scheduler: dataset_scheduler, state, action, current_archive,
+                                 use_original_reward=True, alpha=1e-8):
+        reward_dic = {}
+        for expert_idx, data in dataset_scheduler.splited_data.items():
+            c = data['c']
+            c = c.to(self.device)
+
+            with torch.no_grad():
+                c_array = c.unsqueeze(0).repeat(state.size(0), 1)
+                disc_input = torch.cat([state, action, c_array], dim=1)
+                d = self.discriminator(disc_input)
+                
+                
+
+                reward_dic[expert_idx] = d
+        weighted_reward = dataset_scheduler.cal_weighted_reward(reward_dic, current_archive)
+        reward = -torch.log(1 - weighted_reward + alpha)
+        if use_original_reward:
+            return reward
+        else:
+            return reward / np.sqrt(self.ret_rms.var[0] + alpha)
+    def calculate_intrinsic_reward(self, dataset_scheduler: dataset_scheduler, state, action, current_archive,
+                                use_original_reward=True, alpha=1e-8):
+        '''
+        并行化版本
+        '''
+     
+        # 1. 收集所有expert的c值
+        expert_cs = []
+        expert_idxs = []
+        for expert_idx, data in dataset_scheduler.splited_data.items():
+            expert_cs.append(data['c'])
+            expert_idxs.append(expert_idx)
+        
+   
+        
+        # 2. 将所有c堆叠成一个批次
+        c_batch = torch.stack(expert_cs).to(self.device)  # shape: (num_experts, c_dim)
+        
+      
+        
+        # 3. 并行计算所有expert的reward
+        with torch.no_grad():
+            # 扩展state和action以匹配每个expert
+            state_expanded = state.unsqueeze(0).expand(len(expert_cs), -1, -1)  # shape: (num_experts, batch_size, state_dim)
+            action_expanded = action.unsqueeze(0).expand(len(expert_cs), -1, -1)  # shape: (num_experts, batch_size, action_dim)
+            c_expanded = c_batch.unsqueeze(1).expand(-1, state.size(0), -1)  # shape: (num_experts, batch_size, c_dim)
+            
+            # 将所有输入连接起来并重塑为2D张量
+            disc_input = torch.cat([
+                state_expanded.reshape(len(expert_cs) * state.size(0), -1),
+                action_expanded.reshape(len(expert_cs) * state.size(0), -1),
+                c_expanded.reshape(len(expert_cs) * state.size(0), -1)
+            ], dim=1)
+            
+            # 并行计算discriminator输出
+            d = self.discriminator(disc_input)
+            
+            # 重塑回原始维度
+            d = d.reshape(len(expert_cs), state.size(0))
+            
+            # 构建reward字典 - 保持与cal_weighted_reward函数期望的格式一致
+            reward_dic = {idx: d[i] for i, idx in enumerate(expert_idxs)}
+
+  
+
+        # 4. 计算加权reward
+        weighted_reward = dataset_scheduler.cal_weighted_reward(reward_dic, current_archive)
+        reward = -torch.log(1 - weighted_reward + alpha)
+        
+   
+    
+        
+        if use_original_reward:
+            return reward
+        else:
+            return reward / np.sqrt(self.ret_rms.var[0] + alpha)
+
 #archive_bonus_GAIL
 class abGAIL(object):
     def __init__(self,
@@ -987,8 +1444,6 @@ class mCondGAIL(object):
                 return reward 
             else:
                 return reward / np.sqrt(self.ret_rms.var[0] + alpha)
-            
-            
             
 
 

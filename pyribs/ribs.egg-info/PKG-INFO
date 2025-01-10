@@ -23,10 +23,47 @@ Classifier: Topic :: Scientific/Engineering :: Mathematics
 Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
 Requires-Python: >=3.7.0
 Description-Content-Type: text/markdown
-Provides-Extra: visualize
-Provides-Extra: examples
-Provides-Extra: dev
 License-File: LICENSE
+Requires-Dist: numpy>=1.17.0
+Requires-Dist: numpy_groupies>=0.9.16
+Requires-Dist: numba>=0.51.0
+Requires-Dist: pandas>=1.0.0
+Requires-Dist: sortedcontainers>=2.0.0
+Requires-Dist: scikit-learn>=0.20.0
+Requires-Dist: scipy>=1.4.0
+Requires-Dist: threadpoolctl>=3.0.0
+Requires-Dist: semantic-version>=2.10
+Provides-Extra: visualize
+Requires-Dist: matplotlib>=3.0.0; extra == "visualize"
+Provides-Extra: examples
+Requires-Dist: matplotlib>=3.0.0; extra == "examples"
+Requires-Dist: gym~=0.17.0; extra == "examples"
+Requires-Dist: Box2D~=2.3.10; extra == "examples"
+Requires-Dist: fire>=0.4.0; extra == "examples"
+Requires-Dist: tqdm>=4.0.0; extra == "examples"
+Requires-Dist: dask>=2.0.0; extra == "examples"
+Requires-Dist: distributed>=2.0.0; extra == "examples"
+Requires-Dist: bokeh>=2.0.0; extra == "examples"
+Provides-Extra: dev
+Requires-Dist: pip>=20.3; extra == "dev"
+Requires-Dist: pylint==2.8.3; extra == "dev"
+Requires-Dist: yapf; extra == "dev"
+Requires-Dist: pytest==7.0.1; extra == "dev"
+Requires-Dist: pytest-cov==3.0.0; extra == "dev"
+Requires-Dist: pytest-benchmark==3.4.1; extra == "dev"
+Requires-Dist: pytest-xdist==2.5.0; extra == "dev"
+Requires-Dist: Sphinx==4.5.0; extra == "dev"
+Requires-Dist: sphinx-material==0.0.32; extra == "dev"
+Requires-Dist: sphinx-autobuild==2020.9.1; extra == "dev"
+Requires-Dist: sphinx-copybutton==0.3.1; extra == "dev"
+Requires-Dist: myst-nb==0.15.0; extra == "dev"
+Requires-Dist: sphinx-toolbox==3.1.0; extra == "dev"
+Requires-Dist: sphinx-autodoc-typehints==1.18.2; extra == "dev"
+Requires-Dist: sphinx-codeautolink==0.11.0; extra == "dev"
+Requires-Dist: bump2version==0.5.11; extra == "dev"
+Requires-Dist: wheel==0.36.2; extra == "dev"
+Requires-Dist: twine==1.14.0; extra == "dev"
+Requires-Dist: check-wheel-contents==0.2.0; extra == "dev"
 
 # pyribs
 

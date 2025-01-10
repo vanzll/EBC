@@ -6,8 +6,8 @@ export XLA_PYTHON_CLIENT_PREALLOCATE=false
 ENV_NAME="halfcheetah"
 GRID_SIZE=50  # number of cells per archive dimension
 SEED=1111
-SEED=2222
-SEED=3333
+#SEED=2222
+#SEED=3333
 
 
 # bonus_type='weighted_fitness_cond_measure_entropy'
@@ -32,6 +32,8 @@ auxiliary_loss_fn='MSE'
 # auxiliary_loss_fn='NLL'
 
 intrinsic_module='m_cond_gail'
+intrinsic_module='diffail'
+intrinsic_module='condiff'
 #intrinsic_module='m_reg_gail'
 #intrinsic_module='m_cond_reg_gail'
 #intrinsic_module='abgail'
@@ -57,7 +59,7 @@ data_str=good_and_diverse_elite_with_measures_top500
 # cp_iter=00000740
 # scheduler_cp=${cp_dir}/cp_${cp_iter}/scheduler_${cp_iter}.pkl
 # archive_cp=${cp_dir}/cp_${cp_iter}/archive_df_${cp_iter}.pkl
-archive_bonus=True
+archive_bonus=False
 if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi
