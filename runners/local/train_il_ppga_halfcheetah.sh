@@ -5,8 +5,8 @@ export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
 ENV_NAME="halfcheetah"
 GRID_SIZE=50  # number of cells per archive dimension
-SEED=1111
-#SEED=2222
+#SEED=1111
+SEED=2222
 #SEED=3333
 
 
@@ -23,7 +23,7 @@ bonus_type='None'
 # intrinsic_module='icm'
 
 # intrinsic_module='zero'
-# intrinsic_module='gail'
+intrinsic_module='gail'
 
 # intrinsic_module='m_acgail'
 # intrinsic_module='m_cond_acgail'
@@ -31,9 +31,9 @@ bonus_type='None'
 auxiliary_loss_fn='MSE'
 # auxiliary_loss_fn='NLL'
 
-intrinsic_module='m_cond_gail'
-intrinsic_module='diffail'
-intrinsic_module='condiff'
+#intrinsic_module='m_cond_gail'
+#intrinsic_module='diffail'
+#intrinsic_module='condiff'
 #intrinsic_module='m_reg_gail'
 #intrinsic_module='m_cond_reg_gail'
 #intrinsic_module='abgail'
@@ -64,6 +64,11 @@ if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi
 
+archive_visitation_bonus=True
+if [ "$archive_visitation_bonus" = "True" ]; then
+    GROUP_NAME="${GROUP_NAME}_archive_visitation_bonus"
+fi
+
 if [ "$archive_bonus" = "False" ] && [ "$bonus_type" = "None" ]; then
     GROUP_NAME="${GROUP_NAME}"
 fi
@@ -81,6 +86,7 @@ python -m algorithm.train_il_ppga --env_name=$ENV_NAME \
                                 --wo_a=${wo_a} \
                                 --bonus_smooth=${bonus_smooth} \
                                 --archive_bonus=${archive_bonus} \
+                                --archive_visitation_bonus=${archive_visitation_bonus} \
                                 --intrinsic_module=${intrinsic_module} \
                                 --demo_dir=trajs_${data_str}/${num_demo}episodes/ \
                                 --reward_save_dir=reward_converged_${num_demo}_${data_str}/ \

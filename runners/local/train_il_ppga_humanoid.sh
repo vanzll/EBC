@@ -3,8 +3,8 @@ export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
 ENV_NAME="humanoid"
 GRID_SIZE=50  # number of cells per archive dimension
-SEED=1111
-#SEED=2222
+#SEED=1111
+SEED=2222
 #SEED=3333
 # bonus_type='weighted_fitness_cond_measure_entropy'
 # bonus_type='fitness_cond_measure_entropy'
@@ -19,7 +19,7 @@ bonus_type='None'
 # intrinsic_module='icm'
 
 # intrinsic_module='zero'
-# intrinsic_module='gail'
+intrinsic_module='gail'
 
 # intrinsic_module='m_acgail'
 # intrinsic_module='m_cond_acgail'
@@ -27,14 +27,14 @@ bonus_type='None'
 auxiliary_loss_fn='MSE'
 # auxiliary_loss_fn='NLL'
 
-intrinsic_module='m_cond_gail'
-intrinsic_module='diffail'
-intrinsic_module='condiff'
+#intrinsic_module='m_cond_gail'
+#intrinsic_module='diffail'
+#intrinsic_module='condiff'
 #intrinsic_module='m_cond_vail'
 #intrinsic_module='m_reg_gail'
 #intrinsic_module='m_cond_reg_gail'
 #intrinsic_module='abgail'
-# intrinsic_module='vail'
+#intrinsic_module='vail'
 
 
 GROUP_NAME=IL_ppga_"$ENV_NAME"_${intrinsic_module} #_RegLoss_${auxiliary_loss_fn}_Bonus_${bonus_type}
@@ -53,6 +53,17 @@ archive_bonus=False
 if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi
+
+archive_visitation_bonus=True
+if [ "$archive_visitation_bonus" = "True" ]; then
+    GROUP_NAME="${GROUP_NAME}_archive_visitation_bonus"
+fi
+
+
+
+
+
+
 wo_a=False
 if [ "$wo_a" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_a"
@@ -64,12 +75,14 @@ if [ "$bonus_smooth" = "False" ] && [ "$archive_bonus" = "True" ]; then
 fi
 p=-2.0
 q=0.5
+
 # GROUP_NAME="${GROUP_NAME}_p_${p}_q_${q}"
 python -m algorithm.train_il_ppga --env_name=$ENV_NAME \
                                 --bonus_smooth=${bonus_smooth} \
                                 --wo_a=${wo_a} \
                                 --p=${p} \
                                 --q=${q} \
+                                --archive_visitation_bonus=${archive_visitation_bonus} \
                                 --archive_bonus=${archive_bonus} \
                                 --save_heatmaps=False \
                                 --save_scheduler=False \

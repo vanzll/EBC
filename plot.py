@@ -528,11 +528,13 @@ if __name__ == '__main__':
 })
     markers.update({
     'DiffAIL':',',
-    'Condiff':','
+    'Condiff':',',
+    'GAIL-Extrinsic-Curiosity':','
 })
     colors.update({
     'DiffAIL':'tab:purple',
-    'Condiff':'tab:red'
+    'Condiff':'tab:red',
+    'GAIL-Extrinsic-Curiosity':'tab:green'
 })
 
 
@@ -559,6 +561,7 @@ if __name__ == '__main__':
                                     'diffail',
                                     'condiff'
                                     ],
+                    'archive_visitation_bonus':['gail_archive_visitation_bonus','gail'],
                    'rebuttal_5':['expert',
                                     'gail',
                                     'm_cond_gail_archive_bonus_wo_smooth',
@@ -604,7 +607,7 @@ if __name__ == '__main__':
     # tgts = ['IFO']
     # tgts = ['rebuttal_1_2','rebuttal_3','rebuttal_4']
     # tgts= ['rebuttal_5']
-    tgts= ['condiff']
+    tgts= ['archive_visitation_bonus']
     # tgts = [tgt for tgt in methods_map.keys() if 'expert' in methods_map[tgt]]
     # tgts = ['gail_scale']
     for tgt in tgts:
@@ -697,6 +700,9 @@ if __name__ == '__main__':
                 ext_str = '_rebuttal_5'
             if tgt == 'condiff':
                 ext_str = '_condiff'
+            if tgt == 'archive_visitation_bonus':
+                ext_str = '_archive_visitation_bonus'
+            
             
             
        
@@ -744,7 +750,8 @@ if __name__ == '__main__':
                     'm_cond_gail_archive_bonus_wo_smooth_original':'MConbo-GAIL-ExpertNoBonus',
                     'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5_4demo':'MConbo-GAIL-4demo',
                     'diffail':'DiffAIL',
-                    'condiff':'Condiff'
+                    'condiff':'Condiff',
+                    'gail_archive_visitation_bonus':'GAIL-Extrinsic-Curiosity',
                     
                     
                                  

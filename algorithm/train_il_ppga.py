@@ -33,6 +33,7 @@ def parse_args():
     # PPO params
     parser = argparse.ArgumentParser()
     parser.add_argument('--archive_bonus', default=False,type=lambda x: bool(strtobool(x)))
+    parser.add_argument('--archive_visitation_bonus', default=False,type=lambda x: bool(strtobool(x)))
     parser.add_argument('--env_name', type=str)
     parser.add_argument('--bonus_smooth', default=True,type=lambda x: bool(strtobool(x)))
     parser.add_argument('--seed', type=int, default=0)
@@ -388,7 +389,7 @@ def train_ppga(cfg: AttrDict, vec_env):
         # for plotting purposes
         emitter_loc = (measures[0][0], measures[0][1])
         best = max(best, max(objs))
-
+        
         # return the gradients to the scheduler. Will be used for the next step
         scheduler.tell_dqd(objs, measures, jacobian, metadata)
 

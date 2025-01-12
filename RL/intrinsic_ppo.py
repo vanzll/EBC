@@ -60,6 +60,7 @@ class IntrinsicPPO:
         self.obs_shape = cfg.obs_shape
         self.action_shape = cfg.action_shape
         self.archive_bonus = cfg.archive_bonus
+        self.archive_visitation_bonus = cfg.archive_visitation_bonus
         agent = Actor(self.obs_shape, self.action_shape, normalize_obs=cfg.normalize_obs, normalize_returns=cfg.normalize_returns).to(self.device)
         self._agents = [agent]
         critic = QDCritic(self.obs_shape, measure_dim=cfg.num_dims).to(self.device)
@@ -357,8 +358,93 @@ class IntrinsicPPO:
         
         if cfg.intrinsic_module == 'zero':
             self.reward_model = None
+        self.visitation_archive = self.build_visitation_archive()
+    
+    def build_visitation_archive(self):
+        '''
+        build and return the visitation archive
+        '''
+        grid_size = self.cfg.grid_size
+        num_dims = self.cfg.num_dims
+        visitation_archive = np.ones([grid_size] * num_dims)
+        return visitation_archive
 
+    def update_visitation_archive(self, measures, single_step=True, dones=None):
+        '''
+        update the visitation archive with the measures. Parameters:
+        if single step== True, then measures: [rollout_length, num_envs, num_dims], with each element in {0,1}
+        elif single_step== False, then measures: [batch_size, num_dims], with each element in [0,1]
+        dones: [rollout_length, num_envs]
+        '''
+        if single_step == False:
+            # 给measures 找到每一个dimension的index
+            indices = self.current_archive.int_to_grid_index(self.current_archive.index_of(measures)) # (batch_size,measure_dim)
+            
+            # 使用numpy的高级索引并行更新visitation_archive
+            np.add.at(self.visitation_archive, tuple(indices.T), 1)
 
+        elif single_step == True:
+            # measures: [rollout_length, num_envs, num_dims]
+            # dones: [rollout_length, num_envs]
+            
+            # Get trajectory lengths for each env based on first done
+            traj_lengths = torch.argmax(dones.long(), dim=0) + 1 # [num_envs]
+            
+            # Create mask to zero out measures beyond trajectory length
+            mask = torch.arange(measures.shape[0], device=measures.device).unsqueeze(1) < traj_lengths.unsqueeze(0)
+            mask = mask.unsqueeze(-1) # [rollout_length, num_envs, 1]
+            
+            # Mask and sum measures up to trajectory length
+            masked_measures = measures * mask
+            summed_measures = masked_measures.sum(dim=0) # [num_envs, num_dims]
+            
+            # Divide by trajectory lengths to get average
+            total_measures = summed_measures / traj_lengths.unsqueeze(-1) # [num_envs, num_dims]
+            
+            # Convert to indices and update visitation archive
+            indices = self.current_archive.int_to_grid_index(
+                self.current_archive.index_of(total_measures.cpu().numpy())
+            )
+
+            np.add.at(self.visitation_archive, tuple(indices.T), 1)
+        else:
+            pass
+
+    def cal_archive_visitation_bonus(self):
+        '''
+        calculate the visitation bonus based on the visitation archive
+        might use self.measures and self.dones
+        '''
+        measures, dones = self.measures, self.dones
+        traj_lengths = torch.argmax(dones.long(), dim=0) + 1 # [num_envs]
+        
+        # Create mask to zero out measures beyond trajectory length
+        mask = torch.arange(measures.shape[0], device=measures.device).unsqueeze(1) < traj_lengths.unsqueeze(0)
+        mask = mask.unsqueeze(-1) # [rollout_length, num_envs, 1]
+        
+        # Mask and sum measures up to trajectory length
+        masked_measures = measures * mask
+        summed_measures = masked_measures.sum(dim=0) # [num_envs, num_dims]
+        
+        # Divide by trajectory lengths to get average
+        total_measures = summed_measures / traj_lengths.unsqueeze(-1) # [num_envs, num_dims]
+        
+        # Convert to indices and update visitation archive
+        indices = self.current_archive.int_to_grid_index(
+            self.current_archive.index_of(total_measures.cpu().numpy())
+        )# num_envs, num_dims
+
+        normalized_archive = self.visitation_archive / np.sum(self.visitation_archive)
+        probs = normalized_archive[tuple(indices.T)]  # Convert indices to tuple of arrays for proper indexing
+        baseline_probs = 1/(self.cfg.grid_size**self.cfg.num_dims)
+        bonus = -np.log(probs/baseline_probs)# log form
+        bonus = 1/(1 + probs/baseline_probs)
+        # self.rewards: [rollout_length, num_envs] [128,3000], 
+        # bonus: [num_envs]
+        self.rewards = self.rewards + torch.tensor(bonus).to(self.device)
+        print('Visitation Archive Bonus Added')
+        
+    
     @property
     def agents(self):
         return self.vec_inference.vec_to_models()
@@ -557,6 +643,7 @@ class IntrinsicPPO:
         
     def train(self, vec_env, num_updates, rollout_length, calculate_dqd_gradients=False, move_mean_agent=False,
               negative_measure_gradients=False,current_archive = None):
+        self.current_archive = current_archive
         global_step = 0
         # self.next_obs = vec_env.reset()
         next_obs = vec_env.reset()
@@ -589,19 +676,18 @@ class IntrinsicPPO:
             with torch.no_grad():
                 
                 for step in range(rollout_length):
-                    t_step_start = time.time()
+      
                     global_step += self.num_envs
                     
                     self.obs[step] = self.next_obs
                     self.measures[step] = self.next_measure
-                    
-                    t_action_start = time.time()
+   
                     action, logprob, _ = self.vec_inference.get_action(self.next_obs)# most time consuming
                     # b/c of torch amp, need to convert back to float32
                     action = action.to(torch.float32)
-                    t_action_end = time.time()
+                
                     # print('get_action time:', t_action_end - t_action_start)
-               
+                    
            
                     if calculate_dqd_gradients:
                         next_obs = self.next_obs.reshape(num_agents, self.cfg.num_envs // num_agents, -1)
@@ -628,6 +714,7 @@ class IntrinsicPPO:
                     measures = -infos['measures'] if negative_measure_gradients else infos['measures']
                     self.next_measure = measures
 
+
                     if move_mean_agent:
                         rew_measures = torch.cat((reward.unsqueeze(1), measures), dim=1)
                         rew_measures *= self._grad_coeffs
@@ -639,7 +726,7 @@ class IntrinsicPPO:
                     self.next_obs = self.next_obs.to(self.device)
                     self.next_measure = self.next_measure.to(self.device)
 
-                    t_reward_start = time.time()
+        
                     with torch.no_grad():
                         if self.intrinsic_module == 'zero':
                             intrinsic_reward = torch.zeros((self.num_envs)).to(self.device)
@@ -676,7 +763,7 @@ class IntrinsicPPO:
                                                 self.obs[step], action, self.next_obs)
                     
                     self.rewards[step] = torch.nan_to_num(intrinsic_reward, nan=0.0, posinf=10.0, neginf=-10.0)
-                    t_reward_end = time.time()
+               
                     # print('reward time:', t_reward_end - t_reward_start)
                     
 
@@ -696,10 +783,16 @@ class IntrinsicPPO:
                     t_step_end = time.time()
                     # print('step time:', t_step_end - t_step_start)
      
-      
+                # self.measures: (128,3000,2): 128 rollout_length, 3000 num_envs, 2 num_dims
+                # self.dones: (128,3000): 128 rollout_length, 3000 num_envs
+                
+                
+                if self.archive_visitation_bonus == True:
+                    self.cal_archive_visitation_bonus()
                 if self.archive_bonus == True:
                     
                     self.bonus(current_archive)
+                self.update_visitation_archive(self.measures,single_step=True, dones = self.dones)
                     
 
 
@@ -955,5 +1048,6 @@ class IntrinsicPPO:
             log.info(f'Min Reward on eval: {min_reward}')
             log.info(f'Mean Reward across all agents: {mean_reward}')
             log.info(f'Average Trajectory Length: {mean_traj_length}')
-
+        #measures: (batch_size, num_dims)
+        self.update_visitation_archive(measures, single_step=False, dones = None)
         return total_reward.reshape(-1, ), measures.reshape(-1, self.cfg.num_dims), metadata

@@ -318,12 +318,12 @@ class GridArchive(ArchiveBase):
         # Step 2: 提取已占据的网格
         occupied_indices = np.where(self._occupied_arr)[0]  # 获得已占据的网格的整数索引
         occupied_grid_idx = self.int_to_grid_index(occupied_indices)  # 转换成网格坐标 [n_occupied, num_dims]
-        
+    
         # Step 3: 使用 KDE 拟合已占据网格的分布
         if len(occupied_grid_idx) == 0:
             bonus = 0
             return 0
-        
+        breakpoint()
         kde = KernelDensity(kernel='gaussian', bandwidth=1.0)  # 使用高斯核密度估计，带宽控制平滑程度
         kde.fit(occupied_grid_idx)  # 拟合 KDE 模型到已占据的网格
         time1 = time.time()
