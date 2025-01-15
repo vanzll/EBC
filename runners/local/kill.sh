@@ -1,0 +1,29 @@
+# diffail sessions
+tmux kill-session -t IL_PPGA_diffail_Archive_Bonus_wo_smooth_humanoid_2222
+tmux kill-session -t IL_PPGA_diffail_Archive_Bonus_wo_smooth_humanoid_3333
+tmux kill-session -t IL_PPGA_diffail_Archive_Bonus_wo_smooth_halfcheetah_2222
+tmux kill-session -t IL_PPGA_diffail_Archive_Bonus_wo_smooth_halfcheetah_3333
+tmux kill-session -t IL_PPGA_diffail_Archive_Bonus_wo_smooth_walker2d_2222
+tmux kill-session -t IL_PPGA_diffail_Archive_Bonus_wo_smooth_walker2d_3333
+
+# condiff wo bonus sessions
+tmux kill-session -t IL_PPGA_condiff_humanoid_1111
+tmux kill-session -t IL_PPGA_condiff_humanoid_2222
+tmux kill-session -t IL_PPGA_condiff_humanoid_3333
+tmux kill-session -t IL_PPGA_condiff_walker2d_1111
+tmux kill-session -t IL_PPGA_condiff_walker2d_2222
+tmux kill-session -t IL_PPGA_condiff_walker2d_3333
+tmux kill-session -t IL_PPGA_condiff_halfcheetah_1111
+tmux kill-session -t IL_PPGA_condiff_halfcheetah_2222
+tmux kill-session -t IL_PPGA_condiff_halfcheetah_3333
+
+# condiff with bonus sessions
+tmux kill-session -t IL_PPGA_condiff_Archive_Bonus_wo_smooth_humanoid_1111
+tmux kill-session -t IL_PPGA_condiff_Archive_Bonus_wo_smooth_humanoid_2222
+tmux kill-session -t IL_PPGA_condiff_Archive_Bonus_wo_smooth_humanoid_3333
+tmux kill-session -t IL_PPGA_condiff_Archive_Bonus_wo_smooth_walker2d_1111
+tmux kill-session -t IL_PPGA_condiff_Archive_Bonus_wo_smooth_walker2d_2222
+tmux kill-session -t IL_PPGA_condiff_Archive_Bonus_wo_smooth_walker2d_3333
+tmux kill-session -t IL_PPGA_condiff_Archive_Bonus_wo_smooth_halfcheetah_1111
+tmux kill-session -t IL_PPGA_condiff_Archive_Bonus_wo_smooth_halfcheetah_2222
+tmux kill-session -t IL_PPGA_condiff_Archive_Bonus_wo_smooth_halfcheetah_3333

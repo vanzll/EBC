@@ -1,10 +1,13 @@
 import pandas as pd
 import numpy as np
 import csv 
+import matplotlib
+
+print('backend is',matplotlib.get_backend())
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
-import matplotlib
-matplotlib.use('pdf')
+
+
 
 def read_data(summary_file, subsample=1):
     df = pd.read_csv(summary_file)
@@ -20,15 +23,24 @@ def read_data(summary_file, subsample=1):
     # print(AvgReward.shape)
     return iterations, QD_Score, Coverage, BestReward, AvgReward
 
-def get_resultsfile(resultsfolder='experiments',method='gail',game='ant',seed='1111'):
-    return f'{resultsfolder}/IL_ppga_{game}_{method}/{seed}/summary.csv'
+def get_resultsfile(resultsfolder='experiments',method='gail',game='ant',seed='1111', is_rl=False):
+    if is_rl:
+        print(resultsfolder)
+        if method == 'expert':
+            
+            return f'{resultsfolder}/IL_ppga_{game}_{method}/{seed}/summary.csv'
+        elif method == 'expert_archive_bonus':
+            
+            return f'{resultsfolder}/ppga_{game}_archive_bonus/{seed}/summary.csv'
+    else:
+        return f'{resultsfolder}/IL_ppga_{game}_{method}/{seed}/summary.csv'
 
-def get_score_from_resultsfile(resultsfolder,method,game,seed):
-    filename = get_resultsfile(resultsfolder,method,game,seed)
+def get_score_from_resultsfile(resultsfolder,method,game,seed, is_rl=False):
+    filename = get_resultsfile(resultsfolder,method,game,seed, is_rl)
     iterations, QD_Score, Coverage, BestReward, AvgReward = read_data(filename)
     return iterations, QD_Score, Coverage, BestReward, AvgReward
 
-def get_method_scores(resultsfolder,game,methods,labels,seeds):
+def get_method_scores(resultsfolder,game,methods,labels,seeds, is_rl=False):
     evals=2000
     qd_scores = {}
     times = {}
@@ -44,7 +56,8 @@ def get_method_scores(resultsfolder,game,methods,labels,seeds):
         for idx,seed in enumerate(seeds):
             try: 
                 iterations, QD_Score, Coverage, BestReward, AvgReward = \
-                    get_score_from_resultsfile(resultsfolder,method,game,seed)
+                    get_score_from_resultsfile(resultsfolder,method,game,seed, is_rl)
+                print('loading successful')
                 qd_scores[labels[i]][idx][0:len(iterations)] = QD_Score
                 times[labels[i]][idx][0:len(iterations)] = iterations
                 coverages[labels[i]][idx][0:len(iterations)] = Coverage
@@ -100,14 +113,17 @@ def plot(metric, resultsfolder,labels, games, scores, times, seeds, colors, mark
         ax.set_ylabel(metric,fontsize=22)
         ax.set_title(game)
         fig.tight_layout()
+        fig.show()
         # fig.savefig(f"{resultsfolder}/IL_PPGA_{game}_{metric}.pdf")
         if format == 'both':
             fig.savefig(f"{resultsfolder}/figures/IL_PPGA{ext_str}_{game}_{metric}.png", dpi=600)
             fig.savefig(f"{resultsfolder}/figures/IL_PPGA{ext_str}_{game}_{metric}.pdf", dpi=600)
         else:
             fig.savefig(f"{resultsfolder}/figures/IL_PPGA{ext_str}_{game}_{metric}.{format}", dpi=600)
+
         fig.clf()
-        fig.show()
+        
+        print('show figure')
         
         #plt.close()
 
@@ -236,7 +252,7 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
         fig.savefig(f"{resultsfolder}/combined_{ext_str}_metrics.pdf", dpi=600)
     else:
         fig.savefig(f"{resultsfolder}/combined_{ext_str}_metrics.{format}", dpi=600)
-    
+    plt.show()
     plt.close(fig)
 
 
@@ -529,12 +545,18 @@ if __name__ == '__main__':
     markers.update({
     'DiffAIL':',',
     'Condiff':',',
-    'GAIL-Extrinsic-Curiosity':','
+    'GAIL-Extrinsic-Curiosity':',',
+    'KDE-Mbo-GAIL':',',
+    'KDE-Mbo-DiffAIL':',',
+    'KDE-Mbo-PPGA':','
 })
     colors.update({
     'DiffAIL':'tab:purple',
     'Condiff':'tab:red',
-    'GAIL-Extrinsic-Curiosity':'tab:green'
+    'GAIL-Extrinsic-Curiosity':'tab:green',
+    'KDE-Mbo-GAIL':'tab:orange',
+    'KDE-Mbo-DiffAIL':'tab:blue',
+    'KDE-Mbo-PPGA':'tab:olive'
 })
 
 
@@ -562,6 +584,8 @@ if __name__ == '__main__':
                                     'condiff'
                                     ],
                     'archive_visitation_bonus':['gail_archive_visitation_bonus','gail'],
+                    'kde_mbo_il':['gail_archive_bonus','gail','diffail', 'diffail_archive_bonus'],
+                    'kde_mbo_rl':['expert', 'expert_archive_bonus'],
                    'rebuttal_5':['expert',
                                     'gail',
                                     'm_cond_gail_archive_bonus_wo_smooth',
@@ -607,7 +631,7 @@ if __name__ == '__main__':
     # tgts = ['IFO']
     # tgts = ['rebuttal_1_2','rebuttal_3','rebuttal_4']
     # tgts= ['rebuttal_5']
-    tgts= ['archive_visitation_bonus']
+    tgts= ['kde_mbo_rl']
     # tgts = [tgt for tgt in methods_map.keys() if 'expert' in methods_map[tgt]]
     # tgts = ['gail_scale']
     for tgt in tgts:
@@ -702,6 +726,14 @@ if __name__ == '__main__':
                 ext_str = '_condiff'
             if tgt == 'archive_visitation_bonus':
                 ext_str = '_archive_visitation_bonus'
+            if tgt == 'kde_mbo_gail':
+                ext_str = '_kde_mbo_gail'
+            if tgt == 'kde_mbo_il':
+                ext_str = '_kde_mbo_il'
+            if tgt == 'kde_mbo_rl':
+                ext_str = '_kde_mbo_rl'
+            
+            
             
             
             
@@ -752,6 +784,11 @@ if __name__ == '__main__':
                     'diffail':'DiffAIL',
                     'condiff':'Condiff',
                     'gail_archive_visitation_bonus':'GAIL-Extrinsic-Curiosity',
+                    'abgail_archive_bonus':'KDE-Mbo-GAIL',
+                    'gail_archive_bonus':'KDE-Mbo-GAIL',
+                    'diffail_archive_bonus':'KDE-Mbo-DiffAIL',
+                    'expert_archive_bonus':'KDE-Mbo-PPGA'
+
                     
                     
                                  
@@ -840,11 +877,13 @@ if __name__ == '__main__':
         # num_demo=64
         for num_demo in num_demos:
             resultsfolder=f'experiments_{num_demo}_{data_str}'
+            if tgt == 'kde_mbo_rl':
+                resultsfolder = 'experiments_experts'
             if 'ant' in games:
                 resultsfolder = 'experiments_4x50_good_and_diverse_elite_with_measures_top500'#for ant
             
-            
-            results_dict= {game: get_method_scores(resultsfolder,game,methods,labels,seeds) for game in games}
+            is_rl = tgt=='kde_mbo_rl'
+            results_dict= {game: get_method_scores(resultsfolder,game,methods,labels,seeds, is_rl) for game in games}
             # times, qd_scores, coverages, best_perf, avg_perf
             
             

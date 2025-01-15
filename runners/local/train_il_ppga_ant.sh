@@ -2,7 +2,7 @@
 
 ENV_NAME="ant"
 GRID_SIZE=10  # number of cells per archive dimension
-SEED=1111
+SEED=${SEED:-1111}
 # SEED=2222
 
 # bonus_type='weighted_fitness_cond_measure_entropy'
@@ -19,8 +19,8 @@ bonus_type='None'
 
 # intrinsic_module='zero'
 #intrinsic_module='m_cond_reg_gail'
-intrinsic_module='abgail'
-
+# intrinsic_module='abgail'
+intrinsic_module=${intrinsic_module:-'gail'}
 #intrinsic_module='m_reg_gail'
 
 # intrinsic_module='m_acgail'
@@ -63,7 +63,7 @@ if [ "$wo_a" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_a"
 fi
 
-bonus_smooth=False
+bonus_smooth=True
 if [ "$bonus_smooth" = "False" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_smooth"
 fi

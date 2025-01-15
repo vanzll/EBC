@@ -1,14 +1,36 @@
 #!/usr/bin/env bash
 
 ENV_NAME="walker2d"
+GROUP_NAME=ppga_"$ENV_NAME"
 GRID_SIZE=50  # number of cells per archive dimension
-SEED=1111
+SEED=${SEED:-1111}
 
+archive_bonus=${archive_bonus:-True}
+if [ "$archive_bonus" = "True" ]; then
+    GROUP_NAME="${GROUP_NAME}_archive_bonus"
+fi
+
+wo_a=False
+if [ "$wo_a" = "True" ]; then
+    GROUP_NAME="${GROUP_NAME}_wo_a"
+fi
+
+bonus_smooth=${bonus_smooth:-False}
+if [ "$bonus_smooth" = "False" ]; then
+    GROUP_NAME="${GROUP_NAME}_wo_smooth"
+fi
 
 RUN_NAME="paper_ppga_"$ENV_NAME"_seed_"$SEED
+p=0.5
+q=1
 echo $RUN_NAME
 python -m algorithm.train_ppga --env_name=$ENV_NAME \
                                 --rollout_length=128 \
+                                --archive_bonus=${archive_bonus} \
+                                --p=${p} \
+                                --q=${q} \
+                                --bonus_smooth=${bonus_smooth} \
+                                --wo_a=${wo_a} \
                                 --use_wandb=False \
                                 --wandb_group=paper \
                                 --num_dims=2 \
@@ -36,5 +58,5 @@ python -m algorithm.train_ppga --env_name=$ENV_NAME \
                                 --archive_lr=0.5 \
                                 --threshold_min=200 \
                                 --grid_size=$GRID_SIZE \
-                                --expdir=./experiments_experts/IL_ppga_"$ENV_NAME"_expert \
+                                --expdir=./experiments_experts/$GROUP_NAME \
                                 --wandb_project PPGA_${ENV_NAME}

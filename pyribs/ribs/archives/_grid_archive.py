@@ -323,8 +323,12 @@ class GridArchive(ArchiveBase):
         if len(occupied_grid_idx) == 0:
             bonus = 0
             return 0
-        breakpoint()
-        kde = KernelDensity(kernel='gaussian', bandwidth=1.0)  # 使用高斯核密度估计，带宽控制平滑程度
+     
+
+
+
+     
+        kde = KernelDensity(kernel='gaussian', bandwidth=0.1)  # 使用高斯核密度估计，带宽控制平滑程度
         kde.fit(occupied_grid_idx)  # 拟合 KDE 模型到已占据的网格
         time1 = time.time()
         # Step 4: 计算当前 batch 的网格的概率密度
@@ -336,7 +340,7 @@ class GridArchive(ArchiveBase):
         # 如果密度低，说明该网格探索较少，给予较高奖励
     
         baseline_prob = 1/self._cells
-        bonus = -np.log(np.clip(density/baseline_prob,0.1,1))
+        bonus = -np.log(np.clip(density,a_min=0.1, a_max=None))
         
         # Step 6: 返回计算结果
         return bonus

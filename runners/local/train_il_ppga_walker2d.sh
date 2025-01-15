@@ -2,8 +2,8 @@
 
 ENV_NAME="walker2d"
 GRID_SIZE=50  # number of cells per archive dimension
-#SEED=1111
-SEED=2222
+SEED=${SEED:-1111}
+#SEED=2222
 #SEED=3333
 # bonus_type='weighted_fitness_cond_measure_entropy'
 # bonus_type='fitness_cond_measure_entropy'
@@ -18,7 +18,7 @@ bonus_type='None'
 # intrinsic_module='icm'
 
 # intrinsic_module='zero'
-intrinsic_module='gail'
+intrinsic_module=${intrinsic_module:-'gail'}
 
 # intrinsic_module='m_acgail'
 # intrinsic_module='m_cond_acgail'
@@ -42,13 +42,13 @@ num_demo=4
 gail_batchsize=120
 echo $RUN_NAME
 data_str=good_and_diverse_elite_with_measures_top500
-archive_bonus=False
+archive_bonus=${archive_bonus:-True}
 if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi
 
 
-archive_visitation_bonus=True
+archive_visitation_bonus=${archive_visitation_bonus:-False}
 if [ "$archive_visitation_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_visitation_bonus"
 fi
@@ -59,13 +59,18 @@ if [ "$wo_a" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_a"
 fi
 
-bonus_smooth=False
+bonus_smooth=${bonus_smooth:-True}
 if [ "$bonus_smooth" = "False" ] && [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_smooth"
 fi
+p=0.5
+q=1
+
 
 python -m algorithm.train_il_ppga --env_name=$ENV_NAME \
                                 --bonus_smooth=${bonus_smooth} \
+                                --p=${p} \
+                                --q=${q} \
                                 --archive_visitation_bonus=${archive_visitation_bonus} \
                                 --wo_a=${wo_a} \
                                 --archive_bonus=${archive_bonus} \

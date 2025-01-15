@@ -52,7 +52,7 @@ class PPO:
         self.num_envs = cfg.num_envs
         self.obs_shape = cfg.obs_shape
         self.action_shape = cfg.action_shape
-
+        self.archive_bonus = cfg.archive_bonus
         agent = Actor(self.obs_shape, self.action_shape, normalize_obs=cfg.normalize_obs, normalize_returns=cfg.normalize_returns).to(self.device)
         self._agents = [agent]
         critic = QDCritic(self.obs_shape, measure_dim=cfg.num_dims).to(self.device)
@@ -76,7 +76,7 @@ class PPO:
         self.num_intervals = 0
         self.total_rewards = torch.zeros(self.num_envs)
         self.ep_len = torch.zeros(self.num_envs)
-
+        
         # seeding
         random.seed(self.seed)
         np.random.seed(self.seed)
@@ -104,7 +104,7 @@ class PPO:
         self._grad_coeffs[0] = 1.0  # default grad coefficients optimizes objective only
         self.obs_measure_coeffs = torch.zeros((cfg.rollout_length, self.num_envs,
                                                self.obs_shape[0] + self.cfg.num_dims + 1)).to(self.device)
-        self.archive_bonus = cfg.archive_bonus
+        
 
     @property
     def agents(self):

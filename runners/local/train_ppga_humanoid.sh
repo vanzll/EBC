@@ -3,9 +3,9 @@
 ENV_NAME="humanoid"
 GROUP_NAME=ppga_"$ENV_NAME"
 GRID_SIZE=50  # number of cells per archive dimension
-SEED=1111
+SEED=${SEED:-1111}
 # SEED=2222
-archive_bonus=True
+archive_bonus=${archive_bonus:-True}
 if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi
@@ -15,14 +15,14 @@ if [ "$wo_a" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_a"
 fi
 
-bonus_smooth=False
+bonus_smooth=${bonus_smooth:-False}
 if [ "$bonus_smooth" = "False" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_smooth"
 fi
 
 RUN_NAME="paper_ppga_"$ENV_NAME"_seed_"$SEED
 p=0.5
-q=0.5
+q=1
 echo $RUN_NAME
 python -m algorithm.train_ppga --env_name=$ENV_NAME \
                                 --archive_bonus=${archive_bonus} \

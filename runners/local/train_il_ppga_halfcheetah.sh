@@ -5,8 +5,8 @@ export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
 ENV_NAME="halfcheetah"
 GRID_SIZE=50  # number of cells per archive dimension
-#SEED=1111
-SEED=2222
+SEED=${SEED:-1111}
+#SEED=2222
 #SEED=3333
 
 
@@ -23,7 +23,7 @@ bonus_type='None'
 # intrinsic_module='icm'
 
 # intrinsic_module='zero'
-intrinsic_module='gail'
+intrinsic_module=${intrinsic_module:-'gail'}
 
 # intrinsic_module='m_acgail'
 # intrinsic_module='m_cond_acgail'
@@ -59,12 +59,12 @@ data_str=good_and_diverse_elite_with_measures_top500
 # cp_iter=00000740
 # scheduler_cp=${cp_dir}/cp_${cp_iter}/scheduler_${cp_iter}.pkl
 # archive_cp=${cp_dir}/cp_${cp_iter}/archive_df_${cp_iter}.pkl
-archive_bonus=False
+archive_bonus=${archive_bonus:-True}
 if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi
 
-archive_visitation_bonus=True
+archive_visitation_bonus=${archive_visitation_bonus:-False}
 if [ "$archive_visitation_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_visitation_bonus"
 fi
@@ -78,12 +78,18 @@ if [ "$wo_a" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_a"
 fi
 
-bonus_smooth=False
+bonus_smooth=${bonus_smooth:-True}
 if [ "$bonus_smooth" = "False" ] && [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_smooth"
 fi
+
+p=0.5
+q=1
+
 python -m algorithm.train_il_ppga --env_name=$ENV_NAME \
                                 --wo_a=${wo_a} \
+                                --p=${p} \
+                                --q=${q} \
                                 --bonus_smooth=${bonus_smooth} \
                                 --archive_bonus=${archive_bonus} \
                                 --archive_visitation_bonus=${archive_visitation_bonus} \

@@ -527,8 +527,8 @@ if __name__ == '__main__':
                      wandb_project=cfg.wandb_project, wandb_group=cfg.wandb_group, cfg=cfg)
     outdir = os.path.join(cfg.expdir, str(cfg.seed))
     cfg.outdir = outdir
-    assert not os.path.exists(outdir) or cfg.load_scheduler_from_cp is not None or cfg.load_archive_from_cp is not None, \
-        f"Warning: experiment dir {outdir} exists. Danger of overwriting previous run"
+    """     assert not os.path.exists(outdir) or cfg.load_scheduler_from_cp is not None or cfg.load_archive_from_cp is not None, \
+        f"Warning: experiment dir {outdir} exists. Danger of overwriting previous run" """
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 

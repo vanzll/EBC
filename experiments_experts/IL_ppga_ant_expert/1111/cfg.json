@@ -1,8 +1,13 @@
 {
     "env_name": "ant",
     "seed": 1111,
+    "archive_bonus": true,
+    "bonus_smooth": true,
+    "wo_a": false,
+    "p": 0.5,
+    "q": 0.5,
     "torch_deterministic": false,
-    "use_wandb": true,
+    "use_wandb": false,
     "wandb_run_name": "paper_ppga_ant_seed_1111",
     "wandb_group": "paper",
     "wandb_project": "PPGA_ant",
@@ -38,7 +43,7 @@
     "load_archive_from_cp": null,
     "total_iterations": 2000,
     "dqd_algorithm": "cma_maega",
-    "expdir": "./experiments/paper_ppga_ant",
+    "expdir": "./experiments_experts/IL_ppga_ant_expert",
     "save_heatmaps": true,
     "use_surrogate_archive": false,
     "sigma0": 3.0,
@@ -58,5 +63,5 @@
     "action_shape": [
         8
     ],
-    "outdir": "./experiments/paper_ppga_ant/1111"
+    "outdir": "./experiments_experts/IL_ppga_ant_expert/1111"
 }
