@@ -548,7 +548,10 @@ if __name__ == '__main__':
     'GAIL-Extrinsic-Curiosity':',',
     'KDE-Mbo-GAIL':',',
     'KDE-Mbo-DiffAIL':',',
-    'KDE-Mbo-PPGA':','
+    'KDE-Mbo-PPGA':',',
+    'Mbo-DiffAIL':',',
+    'Mbo-Condiff':',',
+    'Mbo-PPGA':','
 })
     colors.update({
     'DiffAIL':'tab:purple',
@@ -556,7 +559,10 @@ if __name__ == '__main__':
     'GAIL-Extrinsic-Curiosity':'tab:green',
     'KDE-Mbo-GAIL':'tab:orange',
     'KDE-Mbo-DiffAIL':'tab:blue',
-    'KDE-Mbo-PPGA':'tab:olive'
+    'KDE-Mbo-PPGA':'tab:olive',
+    'Mbo-DiffAIL':'tab:purple',
+    'Mbo-Condiff':'tab:red',
+    'Mbo-PPGA':'tab:olive'
 })
 
 
@@ -578,12 +584,15 @@ if __name__ == '__main__':
                                     'abgail_archive_bonus_wo_smooth'
                                     #'m_cond_gail'
                                     ],
-                    'condiff':['expert',
+                    'diffusion':['expert',
                                     'gail',
                                     'diffail',
-                                    'condiff'
+                                    'condiff',
+                                    'diffail_archive_bonus_wo_smooth',
+                                    'condiff_archive_bonus_wo_smooth'
                                     ],
                     'archive_visitation_bonus':['gail_archive_visitation_bonus','gail'],
+                    'mbo_rl':['expert','expert_archive_bonus_wo_smooth'],
                     'kde_mbo_il':['gail_archive_bonus','gail','diffail', 'diffail_archive_bonus'],
                     'kde_mbo_rl':['expert', 'expert_archive_bonus'],
                    'rebuttal_5':['expert',
@@ -631,7 +640,9 @@ if __name__ == '__main__':
     # tgts = ['IFO']
     # tgts = ['rebuttal_1_2','rebuttal_3','rebuttal_4']
     # tgts= ['rebuttal_5']
-    tgts= ['kde_mbo_rl']
+    tgts= ['mbo_rl','diffusion'] # task1 and task2 respectively
+
+
     # tgts = [tgt for tgt in methods_map.keys() if 'expert' in methods_map[tgt]]
     # tgts = ['gail_scale']
     for tgt in tgts:
@@ -722,8 +733,8 @@ if __name__ == '__main__':
                 ext_str = '_rebuttal_4'
             if tgt == 'rebuttal_5':
                 ext_str = '_rebuttal_5'
-            if tgt == 'condiff':
-                ext_str = '_condiff'
+            if tgt == 'diffusion':
+                ext_str = '_diffusion'
             if tgt == 'archive_visitation_bonus':
                 ext_str = '_archive_visitation_bonus'
             if tgt == 'kde_mbo_gail':
@@ -732,6 +743,9 @@ if __name__ == '__main__':
                 ext_str = '_kde_mbo_il'
             if tgt == 'kde_mbo_rl':
                 ext_str = '_kde_mbo_rl'
+            if tgt == 'mbo_rl':
+                ext_str = '_mbo_rl'
+            
             
             
             
@@ -787,8 +801,10 @@ if __name__ == '__main__':
                     'abgail_archive_bonus':'KDE-Mbo-GAIL',
                     'gail_archive_bonus':'KDE-Mbo-GAIL',
                     'diffail_archive_bonus':'KDE-Mbo-DiffAIL',
-                    'expert_archive_bonus':'KDE-Mbo-PPGA'
-
+                    'expert_archive_bonus':'KDE-Mbo-PPGA',
+                    'diffail_archive_bonus_wo_smooth':'Mbo-DiffAIL',
+                    'condiff_archive_bonus_wo_smooth':'Mbo-Condiff',
+                    'expert_archive_bonus_wo_smooth':'Mbo-PPGA'
                     
                     
                                  
@@ -863,6 +879,13 @@ if __name__ == '__main__':
             games = ['halfcheetah','humanoid','walker2d',]
             seeds = [1111,2222,3333]
             num_demos = [4]
+        if tgt == 'kde_mbo_rl':
+            games = ['halfcheetah','humanoid','walker2d','ant']
+            seeds = [1111,2222,3333]
+        if tgt == 'mbo_rl':
+            games = ['halfcheetah','humanoid','walker2d']
+            seeds = [1111,2222,3333]
+            
             
             
             
@@ -877,12 +900,13 @@ if __name__ == '__main__':
         # num_demo=64
         for num_demo in num_demos:
             resultsfolder=f'experiments_{num_demo}_{data_str}'
-            if tgt == 'kde_mbo_rl':
-                resultsfolder = 'experiments_experts'
+            
             if 'ant' in games:
                 resultsfolder = 'experiments_4x50_good_and_diverse_elite_with_measures_top500'#for ant
             
-            is_rl = tgt=='kde_mbo_rl'
+            if tgt == 'kde_mbo_rl' or tgt == 'mbo_rl':
+                resultsfolder = 'experiments_experts'
+            is_rl = (tgt=='kde_mbo_rl' or tgt=='mbo_rl')
             results_dict= {game: get_method_scores(resultsfolder,game,methods,labels,seeds, is_rl) for game in games}
             # times, qd_scores, coverages, best_perf, avg_perf
             

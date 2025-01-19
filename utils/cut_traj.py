@@ -68,5 +68,8 @@ if __name__ == "__main__":
     "trajs_good_and_diverse_elite_with_measures_top500/4episodes/trajs_ppga_walker2d.pt"]
                    
     output_dir = "trajs_good_and_diverse_elite_with_measures_top500/4episodes/split"
-    for input_file in input_files:
-        split_trajectories(input_file, output_dir)
+    """ for input_file in input_files:
+        split_trajectories(input_file, output_dir) """
+    
+    data = pickle.load(open("trajs_good_and_diverse_elite_with_measures_top500/4episodes/trajs_ppga_humanoid.pt", 'rb'))
+    breakpoint()
