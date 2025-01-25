@@ -880,7 +880,7 @@ class ConDiff(object):
                 device='cuda:0',
                 lr=3e-4,
                 beta_schedule='linear',
-                n_timesteps=100,
+                n_timesteps=10,
                 use_grad_pen=True,
                 grad_pen_weight=10.0,
                 max_action=1.0,
@@ -1037,29 +1037,18 @@ class ConDiff(object):
     def calculate_intrinsic_reward(self, dataset_scheduler: dataset_scheduler, state, action, current_archive,
                                  use_original_reward=True, alpha=1e-8):
         reward_dic = {}
-        # 将所有专家数据合并成一个大批次
-        all_c = torch.stack([data['c'].to(self.device) for data in dataset_scheduler.splited_data.values()])
-        expert_indices = list(dataset_scheduler.splited_data.keys())
-        
-        with torch.no_grad():
-            # 一次性处理所有专家数据
-            c_array = all_c.unsqueeze(1).repeat(1, state.size(0), 1)  # [num_experts, batch_size, c_dim]
-            state_expanded = state.unsqueeze(0).repeat(len(expert_indices), 1, 1)  # [num_experts, batch_size, state_dim]
-            action_expanded = action.unsqueeze(0).repeat(len(expert_indices), 1, 1)  # [num_experts, batch_size, action_dim]
-            
-            # 重塑张量以进行批处理
-            disc_input = torch.cat([
-                state_expanded.reshape(-1, state.size(-1)),
-                action_expanded.reshape(-1, action.size(-1)),
-                c_array.reshape(-1, all_c.size(-1))
-            ], dim=1)
-            
-            # 一次性计算所有奖励
-            d = self.discriminator(disc_input)
-            d = d.reshape(len(expert_indices), state.size(0))
-            
-            # 将结果分配给每个专家
-            reward_dic = {expert_idx: d[i] for i, expert_idx in enumerate(expert_indices)}
+        for expert_idx, data in dataset_scheduler.splited_data.items():
+            c = data['c']
+            c = c.to(self.device)
+
+            with torch.no_grad():
+                c_array = c.unsqueeze(0).repeat(state.size(0), 1)
+                disc_input = torch.cat([state, action, c_array], dim=1)
+                d = self.discriminator(disc_input)
+                
+                
+
+                reward_dic[expert_idx] = d
         weighted_reward = dataset_scheduler.cal_weighted_reward(reward_dic, current_archive)
         reward = -torch.log(1 - weighted_reward + alpha)
         if use_original_reward:

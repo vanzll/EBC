@@ -11,6 +11,7 @@ import os
 import torch
 import pickle
 import time
+import gc
 import pdb
 import numpy as np
 from pyribs.ribs.archives import GridArchive
@@ -108,7 +109,7 @@ class dataset_scheduler:
         # 4. 调整coef形状用于广播
         coef = coef.unsqueeze(1)
     
-          # shape: (num_experts, 1)
+        # shape: (num_experts, 1)
    
         
         # 5. 计算加权和
@@ -120,3 +121,37 @@ class dataset_scheduler:
 
 
 
+def print_gpu_memory():
+    """打印当前GPU显存使用情况"""
+    if torch.cuda.is_available():
+        print(f"当前GPU: {torch.cuda.current_device()}")
+        print(f"已分配显存: {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+        print(f"缓存显存: {torch.cuda.memory_reserved() / 1024**2:.2f} MB")
+
+def clear_gpu_memory(print_info=True):
+    """
+    清理GPU显存
+    Args:
+        print_info: 是否打印显存信息
+    """
+    if print_info:
+        print("\n清理前的显存状态:")
+        print_gpu_memory()
+
+    # 删除所有还存在的PyTorch缓存变量
+    for obj in gc.get_objects():
+        try:
+            if torch.is_tensor(obj):
+                del obj
+        except Exception:
+            pass
+    
+    # 调用垃圾回收器
+    gc.collect()
+    
+    # 清空PyTorch的CUDA缓存
+    torch.cuda.empty_cache()
+
+    if print_info:
+        print("\n清理后的显存状态:")
+        print_gpu_memory()

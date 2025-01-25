@@ -28,7 +28,7 @@ auxiliary_loss_fn='MSE'
 
 #intrinsic_module='m_cond_gail'
 #intrinsic_module='diffail'
-#intrinsic_module='condiff'
+intrinsic_module='condiff'
 #intrinsic_module='m_cond_vail'
 #intrinsic_module='m_reg_gail'
 #intrinsic_module='m_cond_reg_gail'
@@ -63,10 +63,11 @@ bonus_smooth=${bonus_smooth:-True}
 if [ "$bonus_smooth" = "False" ] && [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_smooth"
 fi
-p=0.5
-q=1
+p=${p:-0.5}
+q=${q:-1}
 
-
+GROUP_NAME="${GROUP_NAME}_p_${p}_q_${q}"
+echo $GROUP_NAME
 python -m algorithm.train_il_ppga --env_name=$ENV_NAME \
                                 --bonus_smooth=${bonus_smooth} \
                                 --p=${p} \

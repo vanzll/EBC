@@ -32,6 +32,8 @@ def get_resultsfile(resultsfolder='experiments',method='gail',game='ant',seed='1
         elif method == 'expert_archive_bonus':
             
             return f'{resultsfolder}/ppga_{game}_archive_bonus/{seed}/summary.csv'
+        elif method == 'expert_archive_bonus_wo_smooth':
+            return f'{resultsfolder}/ppga_{game}_archive_bonus_wo_smooth/{seed}/summary.csv'
     else:
         return f'{resultsfolder}/IL_ppga_{game}_{method}/{seed}/summary.csv'
 
@@ -113,7 +115,7 @@ def plot(metric, resultsfolder,labels, games, scores, times, seeds, colors, mark
         ax.set_ylabel(metric,fontsize=22)
         ax.set_title(game)
         fig.tight_layout()
-        fig.show()
+        # fig.show()
         # fig.savefig(f"{resultsfolder}/IL_PPGA_{game}_{metric}.pdf")
         if format == 'both':
             fig.savefig(f"{resultsfolder}/figures/IL_PPGA{ext_str}_{game}_{metric}.png", dpi=600)
@@ -252,7 +254,7 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
         fig.savefig(f"{resultsfolder}/combined_{ext_str}_metrics.pdf", dpi=600)
     else:
         fig.savefig(f"{resultsfolder}/combined_{ext_str}_metrics.{format}", dpi=600)
-    plt.show()
+    # plt.show()
     plt.close(fig)
 
 
@@ -403,7 +405,7 @@ def line_plot(num_demos, data_str, games, methods, labels, seeds, colors, marker
                 plt.savefig(f"{game}_{metric}_lineplot.{_format}", dpi=300,bbox_inches="tight")
                 print(f"Saved {game}_{metric}_lineplot.{_format}")
             plt.tight_layout()
-            plt.show()
+            # plt.show()
 
 if __name__ == '__main__':
     markers = {
@@ -434,9 +436,9 @@ if __name__ == '__main__':
         "mCondRegICM-mEntropy": ',',
         "mCondRegICM-FCME": ',',
         "GIRIL": ',',
-        "PPGA-trueReward": '*',
-        'True Reward':'*',
-        "PPGA-zeroReward": '*' ,
+        "PPGA-trueReward": ',',
+        'True Reward':',',
+        "PPGA-zeroReward": ',' ,
         'gail_single_step_bonus': ',',
         'gail_archive_bonus': ',',
         'm_cond_reg_gail_single_step_bonus': ',',
@@ -551,7 +553,10 @@ if __name__ == '__main__':
     'KDE-Mbo-PPGA':',',
     'Mbo-DiffAIL':',',
     'Mbo-Condiff':',',
-    'Mbo-PPGA':','
+    'Mbo-PPGA':',',
+    'q=1':',',
+    'q=2':',',
+    'q=5':','
 })
     colors.update({
     'DiffAIL':'tab:purple',
@@ -560,9 +565,12 @@ if __name__ == '__main__':
     'KDE-Mbo-GAIL':'tab:orange',
     'KDE-Mbo-DiffAIL':'tab:blue',
     'KDE-Mbo-PPGA':'tab:olive',
-    'Mbo-DiffAIL':'tab:purple',
-    'Mbo-Condiff':'tab:red',
-    'Mbo-PPGA':'tab:olive'
+    'Mbo-DiffAIL':'tab:blue',
+    'Mbo-Condiff':'tab:orange',
+    'Mbo-PPGA':'tab:olive',
+    'q=1':'tab:purple',
+    'q=2':'tab:red',
+    'q=5':'tab:green'
 })
 
 
@@ -629,7 +637,10 @@ if __name__ == '__main__':
                                  ],
                    'rebuttal_4':['m_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5_10demo',
                                  'm_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5_4demo',
-                                 'expert']
+                                 'expert'],
+                    'q_study':['gail_archive_bonus_wo_smooth_p_0_q_1',
+                               'gail_archive_bonus_wo_smooth_p_0_q_2',
+                               'gail_archive_bonus_wo_smooth_p_0_q_5']
                    
                    
                    
@@ -640,8 +651,8 @@ if __name__ == '__main__':
     # tgts = ['IFO']
     # tgts = ['rebuttal_1_2','rebuttal_3','rebuttal_4']
     # tgts= ['rebuttal_5']
-    tgts= ['mbo_rl','diffusion'] # task1 and task2 respectively
-
+    tgts= ['diffusion'] # task1 and task2 respectively
+    tgts = ['q_study']
 
     # tgts = [tgt for tgt in methods_map.keys() if 'expert' in methods_map[tgt]]
     # tgts = ['gail_scale']
@@ -745,6 +756,9 @@ if __name__ == '__main__':
                 ext_str = '_kde_mbo_rl'
             if tgt == 'mbo_rl':
                 ext_str = '_mbo_rl'
+            if tgt == 'q_study':
+                ext_str = '_q_study'
+            
             
             
             
@@ -804,7 +818,10 @@ if __name__ == '__main__':
                     'expert_archive_bonus':'KDE-Mbo-PPGA',
                     'diffail_archive_bonus_wo_smooth':'Mbo-DiffAIL',
                     'condiff_archive_bonus_wo_smooth':'Mbo-Condiff',
-                    'expert_archive_bonus_wo_smooth':'Mbo-PPGA'
+                    'expert_archive_bonus_wo_smooth':'Mbo-PPGA',
+                    'gail_archive_bonus_wo_smooth_p_0_q_1':'q=1',
+                    'gail_archive_bonus_wo_smooth_p_0_q_2':'q=2',
+                    'gail_archive_bonus_wo_smooth_p_0_q_5':'q=5'
                     
                     
                                  
@@ -885,6 +902,11 @@ if __name__ == '__main__':
         if tgt == 'mbo_rl':
             games = ['halfcheetah','humanoid','walker2d']
             seeds = [1111,2222,3333]
+        if tgt == 'q_study':
+            games = ['humanoid']
+            seeds = [1111,2222,3333]
+            num_demos = [4]
+            
             
             
             

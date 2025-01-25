@@ -21,9 +21,10 @@ if [ "$bonus_smooth" = "False" ]; then
 fi
 
 RUN_NAME="paper_ppga_"$ENV_NAME"_seed_"$SEED
-p=0.5
-q=1
+p=${p:-0.5}
+q=${q:-1}
 echo $RUN_NAME
+GROUP_NAME="${GROUP_NAME}_p_${p}_q_${q}"
 python -m algorithm.train_ppga --env_name=$ENV_NAME \
                                 --rollout_length=128 \
                                 --archive_bonus=${archive_bonus} \

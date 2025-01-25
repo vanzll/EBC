@@ -21,11 +21,11 @@ if [ "$bonus_smooth" = "False" ]; then
 fi
 
 RUN_NAME="paper_ppga_"$ENV_NAME"_seed_"$SEED
-p=0.5
-q=1
+p=${p:-0.5}
+q=${q:-1}
 echo $RUN_NAME
 RUN_NAME="paper_ppga_"$ENV_NAME"_seed_"$SEED
-
+GROUP_NAME="${GROUP_NAME}_p_${p}_q_${q}"
 
 
 

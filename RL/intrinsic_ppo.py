@@ -24,7 +24,7 @@ from algorithm.learn_url_reward import ICM, mCondICM, mRegICM, mCondRegICM, \
     GAIL, VAIL, mCondGAIL, mRegGAIL, mCondRegGAIL, GIRIL, Encoder, mACGAIL, mCondACGAIL, abGAIL, mCondVAIL, PWIL, DiffAIL, ConDiff
 from algorithm.learn_url_reward import load_sa_data 
 import pdb
-from utils.diffusion import dataset_scheduler
+from utils.diffusion import dataset_scheduler, clear_gpu_memory
 
 # based off of the clean-rl implementation
 # https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo_continuous_action.py
@@ -676,12 +676,12 @@ class IntrinsicPPO:
             with torch.no_grad():
                 
                 for step in range(rollout_length):
-      
+                    
                     global_step += self.num_envs
                     
                     self.obs[step] = self.next_obs
                     self.measures[step] = self.next_measure
-   
+                  
                     action, logprob, _ = self.vec_inference.get_action(self.next_obs)# most time consuming
                     # b/c of torch amp, need to convert back to float32
                     action = action.to(torch.float32)
@@ -726,7 +726,7 @@ class IntrinsicPPO:
                     self.next_obs = self.next_obs.to(self.device)
                     self.next_measure = self.next_measure.to(self.device)
 
-        
+               
                     with torch.no_grad():
                         if self.intrinsic_module == 'zero':
                             intrinsic_reward = torch.zeros((self.num_envs)).to(self.device)

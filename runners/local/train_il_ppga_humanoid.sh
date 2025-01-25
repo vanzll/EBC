@@ -73,10 +73,10 @@ bonus_smooth=${bonus_smooth:-True}
 if [ "$bonus_smooth" = "False" ] && [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_wo_smooth"
 fi
-p=0.5
-q=1
-
-# GROUP_NAME="${GROUP_NAME}_p_${p}_q_${q}"
+p=${p:-0.5}
+q=${q:-1}
+GROUP_NAME="${GROUP_NAME}_p_${p}_q_${q}"
+echo $GROUP_NAME
 python -m algorithm.train_il_ppga --env_name=$ENV_NAME \
                                 --bonus_smooth=${bonus_smooth} \
                                 --wo_a=${wo_a} \
