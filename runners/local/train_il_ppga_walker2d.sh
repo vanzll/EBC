@@ -28,7 +28,7 @@ auxiliary_loss_fn='MSE'
 
 #intrinsic_module='m_cond_gail'
 #intrinsic_module='diffail'
-intrinsic_module='condiff'
+#intrinsic_module='condiff'
 #intrinsic_module='m_cond_vail'
 #intrinsic_module='m_reg_gail'
 #intrinsic_module='m_cond_reg_gail'
