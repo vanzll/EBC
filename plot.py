@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 
 
-
-def read_data(summary_file, subsample=1):
+n_subsample = 10
+def read_data(summary_file, subsample=n_subsample):
     df = pd.read_csv(summary_file)
     iterations = np.array(df["Iteration"])[0::subsample]*subsample
     QD_Score = np.array(df["QD-Score"])[0::subsample]
@@ -34,6 +34,17 @@ def get_resultsfile(resultsfolder='experiments',method='gail',game='ant',seed='1
             return f'{resultsfolder}/ppga_{game}_archive_bonus/{seed}/summary.csv'
         elif method == 'expert_archive_bonus_wo_smooth':
             return f'{resultsfolder}/ppga_{game}_archive_bonus_wo_smooth/{seed}/summary.csv'
+        elif method == 'expert_archive_bonus_wo_smooth_p_0_q_2':
+            return f'{resultsfolder}/ppga_{game}_archive_bonus_wo_smooth_p_0_q_2/{seed}/summary.csv'
+        elif method == 'gail_archive_bonus_wo_smooth_p_0_q_2':
+            return f'{resultsfolder}/IL_ppga_{game}_gail_archive_bonus_wo_smooth_p_0_q_2/{seed}/summary.csv'
+        elif method == 'vail_archive_bonus_wo_smooth_p_0_q_2':
+            return f'{resultsfolder}/IL_ppga_{game}_vail_archive_bonus_wo_smooth_p_0_q_2/{seed}/summary.csv'
+        elif method == 'diffail_archive_bonus_wo_smooth_p_0_q_2':
+            return f'{resultsfolder}/IL_ppga_{game}_diffail_archive_bonus_wo_smooth_p_0_q_2/{seed}/summary.csv'
+        elif method == 'diffail_archive_bonus_wo_smooth':
+            return f'{resultsfolder}/IL_ppga_{game}_diffail_archive_bonus_wo_smooth/{seed}/summary.csv'
+
     else:
         return f'{resultsfolder}/IL_ppga_{game}_{method}/{seed}/summary.csv'
 
@@ -166,16 +177,23 @@ def make_table(metric, resultsfolder,labels, games,scores,subsample=4):
         writefile.write(" \n")
         
         
-def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, best_perf, avg_perf, times, seeds, colors, markers, ext_str='', format='png'):
+def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, best_perf, avg_perf, times, seeds, colors, markers, ext_str='', format='png',linestyle = None,is_rl=False,subsample=n_subsample):
     print('now plotting combined figure', f"{resultsfolder}/combined_{ext_str}_metrics.png")
     metrics = ["QD-Score", "Coverage(%)", "BestReward", "AverageReward"]
     score_dicts = [qd_scores, coverages, best_perf, avg_perf]
 
     # 创建大图，包含3行4列子图
     n_games = len(games)
-    fig, axes = plt.subplots(n_games, 4, figsize=(20+5, 5*n_games+1))
-    if n_games == 1:
-        axes = np.expand_dims(axes, axis=0)
+    
+    # 如果是RL且只有一个游戏环境，使用2x2布局
+    if is_rl and n_games == 1:
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        axes = axes.flatten()  # 将2x2数组展平为1维数组以便后续处理
+    else:
+        fig, axes = plt.subplots(n_games, 4, figsize=(20+5, 5*n_games+1))
+        if n_games == 1:
+            axes = np.expand_dims(axes, axis=0)
+            
     fig.subplots_adjust(hspace=0.4, wspace=0.4)
      # 调整底部边距，给图例留出空间
 
@@ -186,7 +204,11 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
     for row, game in enumerate(games):  # 每一行是一个环境
        
         for col, metric in enumerate(metrics):  # 每一列是一个指标
-            ax = axes[row, col]
+            if is_rl and n_games == 1:
+                ax = axes[col]  # 使用展平的axes数组
+            else:
+                ax = axes[row, col]
+                
             score_l = {game: {}}
             score_u = {game: {}}
             score_m = {game: {}}
@@ -210,8 +232,11 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
                     score_m[game][label][idx] = m
 
             for i, label in enumerate(labels):
-                steps = np.array(range(0, len(score_m[game][label])))
-                line, = ax.plot(steps, score_m[game][label], marker=markers[label], color=colors[label], linewidth=2)
+                steps = np.array(range(0, len(score_m[game][label])))*subsample
+                try:
+                    line, = ax.plot(steps, score_m[game][label], marker=markers[label], color=colors[label], linewidth=2,linestyle=linestyle[label])
+                except:
+                    line, = ax.plot(steps, score_m[game][label], marker=markers[label], color=colors[label], linewidth=2)
                 ax.fill_between(steps, score_l[game][label], score_u[game][label], color=colors[label], alpha=0.25)
                 
                 # 仅保存一次用于图例
@@ -220,11 +245,14 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
                     labels_legend.append(label)
 
             # 只在每一行的第一列写 ylabel
-            if col == 0:
+            if (not is_rl or n_games > 1) and col == 0:
                 ax.set_ylabel(game.capitalize(), fontsize=25)  # 增大字体
+                
             # 只在每一行的顶部写指标名称
-            if row == 0:
+            if (not is_rl or n_games > 1) and row == 0:
                 ax.set_title(metric, fontsize=27)  # 增大字体
+            elif is_rl and n_games == 1:
+                ax.set_title(metric, fontsize=27)  # 2x2布局时每个子图都需要标题
             
             ax.set_xlabel("Iterations", fontsize=18)  # 增大字体
             ax.tick_params(axis='both', which='major', labelsize=14)  # 增大刻度字体
@@ -232,8 +260,10 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
     # 创建一个总的图例
     if n_games == 1:
         if ext_str != '_rebuttal_3':
-            
-            fig.legend(lines, labels_legend, loc='upper center', bbox_to_anchor=(0.5, 0.15), fontsize=25, ncol=len(labels))  # 增大图例字体
+            if is_rl:
+                fig.legend(lines, labels_legend, loc='upper center', bbox_to_anchor=(0.5, 0.10), fontsize=25, ncol=3)  # 增大图例字体
+            else:
+                fig.legend(lines, labels_legend, loc='upper center', bbox_to_anchor=(0.5, 0.15), fontsize=25, ncol=len(labels))  # 增大图例字体
         else:
             print('too many labels!')
             # 将图例分为两行
@@ -258,11 +288,11 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
     plt.close(fig)
 
 
-def make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, times_dict, seeds,ext_str):
+def make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, times_dict, seeds,ext_str, data='mean_std'):
     import csv
     print('make_final_metrics_csv', f"{resultsfolder}/final_{ext_str}_metrics.csv")
     # 打开 CSV 文件进行写入
-    with open(f"{resultsfolder}/final_{ext_str}_metrics.csv", 'w', newline='') as csvfile:
+    with open(f"{resultsfolder}/final_{ext_str}_metrics_{data}.csv", 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
 
         # 写入表头：第一列是 'Game'，第二列是 'Model'，接下来是指标名称
@@ -307,13 +337,16 @@ def make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, 
                     else:
                         avg_final_value = round(avg_final_value)
                         std_final_value = round(std_final_value)
-                    
+                    print(f'{game}-{label}-{metric_name}-{final_values}')
                     # avg_final_value = format(avg_final_value)
                     # std_final_value = format(std_final_value)
                     mean_std_final_value = f"{avg_final_value}$\pm${std_final_value}"
 
-                    # 将平均最终值添加到行
-                    row.append(mean_std_final_value)
+                    if data == 'mean_std':
+                        # 将平均最终值添加到行
+                        row.append(mean_std_final_value)
+                    if data == 'raw':
+                        row.append(f"{final_values}")
                 # 写入行到 CSV 文件
                 writer.writerow(row)
 import seaborn as sns
@@ -556,7 +589,11 @@ if __name__ == '__main__':
     'Mbo-PPGA':',',
     'q=1':',',
     'q=2':',',
-    'q=5':','
+    'q=5':',',
+    'GAIL-EBC':'x',
+    'True Reward-EBC':'x',
+    'VAIL-EBC':'x',
+    'DiffAIL-EBC':'x'
 })
     colors.update({
     'DiffAIL':'tab:purple',
@@ -570,8 +607,24 @@ if __name__ == '__main__':
     'Mbo-PPGA':'tab:olive',
     'q=1':'tab:purple',
     'q=2':'tab:red',
-    'q=5':'tab:green'
+    'q=5':'tab:green',
+    'GAIL-EBC':'green',
+    'True Reward-EBC':'black',
+    'VAIL-EBC':'darkorange',
+    'DiffAIL-EBC':'tab:purple'
 })
+    
+    linestyles = {
+        'GAIL-EBC':'dashed',
+        'True Reward-EBC':'dashed',
+        'VAIL-EBC':'dashed',
+        'DiffAIL-EBC':'dashed',
+
+        'GAIL':'solid',
+        'True Reward':'solid',
+        'VAIL':'solid',
+        'DiffAIL':'solid'
+    }
 
 
 
@@ -640,7 +693,27 @@ if __name__ == '__main__':
                                  'expert'],
                     'q_study':['gail_archive_bonus_wo_smooth_p_0_q_1',
                                'gail_archive_bonus_wo_smooth_p_0_q_2',
-                               'gail_archive_bonus_wo_smooth_p_0_q_5']
+                               'gail_archive_bonus_wo_smooth_p_0_q_5'],
+                    'QD-RL':[
+                        'expert',
+                        'expert_archive_bonus_wo_smooth_p_0_q_2',
+                        'gail_archive_bonus_wo_smooth_p_0_q_2',
+                        'vail_archive_bonus_wo_smooth_p_0_q_2',
+                        'diffail_archive_bonus_wo_smooth'
+                    ],
+                    #icml
+                    'All':[
+                           'gail_archive_bonus_wo_smooth_p_0_q_2',
+                           'gail',
+                           'vail_archive_bonus_wo_smooth_p_0_q_2',
+                           'vail',
+                           'diffail_archive_bonus_wo_smooth',
+                           'diffail',
+                           'airl_sigmoid',
+                           'giril',
+                           'irl_sigmoid'
+                           ],
+                    'ICML_rebuttal_demos':['gail','gail_archive_bonus_wo_smooth_p_0_q_2']#rebuttal about the demo issues
                    
                    
                    
@@ -653,7 +726,8 @@ if __name__ == '__main__':
     # tgts= ['rebuttal_5']
     tgts= ['diffusion'] # task1 and task2 respectively
     tgts = ['q_study']
-
+    tgts = ['All']
+    tgts = ['ICML_rebuttal_demos']
     # tgts = [tgt for tgt in methods_map.keys() if 'expert' in methods_map[tgt]]
     # tgts = ['gail_scale']
     for tgt in tgts:
@@ -758,6 +832,12 @@ if __name__ == '__main__':
                 ext_str = '_mbo_rl'
             if tgt == 'q_study':
                 ext_str = '_q_study'
+            if tgt == 'QD-RL':
+                ext_str = '_QD-RL'
+            if tgt == 'All':
+                ext_str = '_All'
+            if tgt == 'ICML_rebuttal_demos':
+                ext_str = '_ICML_rebuttal_demos'
             
             
             
@@ -820,8 +900,13 @@ if __name__ == '__main__':
                     'condiff_archive_bonus_wo_smooth':'Mbo-Condiff',
                     'expert_archive_bonus_wo_smooth':'Mbo-PPGA',
                     'gail_archive_bonus_wo_smooth_p_0_q_1':'q=1',
-                    'gail_archive_bonus_wo_smooth_p_0_q_2':'q=2',
-                    'gail_archive_bonus_wo_smooth_p_0_q_5':'q=5'
+                    'gail_archive_bonus_wo_smooth_p_0_q_2':'GAIL-EBC',
+                    'gail_archive_bonus_wo_smooth_p_0_q_5':'q=5',
+                    'expert_archive_bonus_wo_smooth_p_0_q_2':'True Reward-EBC',
+                    'vail_archive_bonus_wo_smooth_p_0_q_2':'VAIL-EBC',
+                    'diffail_archive_bonus_wo_smooth_p_0_q_2':'DiffAIL-EBC',
+                    'diffail_archive_bonus_wo_smooth':'DiffAIL-EBC',
+                    'gail_p_0_q_2':'GAIL'
                     
                     
                                  
@@ -863,7 +948,7 @@ if __name__ == '__main__':
 
 
         # games = ["humanoid","halfcheetah"] #  "ant" "walker2d",
-        seeds=[1111,2222,3333] #,2222
+        seeds=[1111,2222] #,2222
         games = ["halfcheetah","walker2d","humanoid"]
         num_demos=[4]
         data_str='good_and_diverse_elite_with_measures_top500'
@@ -906,6 +991,15 @@ if __name__ == '__main__':
             games = ['humanoid']
             seeds = [1111,2222,3333]
             num_demos = [4]
+        if tgt == 'QD-RL':
+            games = ['humanoid']
+            seeds = [1111,2222,3333]
+            num_demos = [4]
+        if tgt == 'ICML_rebuttal_demos':
+            data_str = 'good_and_diverse_elite_with_measures_top500'
+            games = ['humanoid']
+            seeds = [1111,2222]
+            num_demos = [1,2,4,10,'best_4']
             
             
             
@@ -921,14 +1015,21 @@ if __name__ == '__main__':
         # num_demo=16
         # num_demo=64
         for num_demo in num_demos:
-            resultsfolder=f'experiments_{num_demo}_{data_str}'
-            
-            if 'ant' in games:
-                resultsfolder = 'experiments_4x50_good_and_diverse_elite_with_measures_top500'#for ant
-            
-            if tgt == 'kde_mbo_rl' or tgt == 'mbo_rl':
-                resultsfolder = 'experiments_experts'
-            is_rl = (tgt=='kde_mbo_rl' or tgt=='mbo_rl')
+            if num_demo == 'best_4':
+                num_demo = 4
+                data_str = 'best_elite_with_measures_top4'
+                resultsfolder=f'experiments_{num_demo}_{data_str}'
+                is_rl = (tgt=='kde_mbo_rl' or tgt=='mbo_rl' or tgt == 'QD-RL')
+            else: 
+                resultsfolder=f'experiments_{num_demo}_{data_str}'
+                
+                
+                if 'ant' in games:
+                    resultsfolder = 'experiments_4x50_good_and_diverse_elite_with_measures_top500'#for ant
+                
+                if tgt == 'kde_mbo_rl' or tgt == 'mbo_rl' or tgt == 'QD-RL':
+                    resultsfolder = 'experiments_experts'
+                is_rl = (tgt=='kde_mbo_rl' or tgt=='mbo_rl' or tgt == 'QD-RL')
             results_dict= {game: get_method_scores(resultsfolder,game,methods,labels,seeds, is_rl) for game in games}
             # times, qd_scores, coverages, best_perf, avg_perf
             
@@ -946,12 +1047,18 @@ if __name__ == '__main__':
             make_table("BestReward", resultsfolder,labels, games, best_perf_dict)
             make_table("AverageReward", resultsfolder,labels, games, avg_perf_dict)
             
-            if ext_str == '_GAILs+VAILs' or ext_str == '_GAILs_scalability' or ext_str == '_IFO' or ext_str =='_rebuttal_1_2' or ext_str == '_rebuttal_3' or ext_str == '_rebuttal_4' or ext_str =='_rebuttal_5':
+            if ext_str == '_GAILs+VAILs' or ext_str == '_GAILs_scalability' or ext_str == '_IFO' or ext_str =='_rebuttal_1_2' or ext_str == '_rebuttal_3' or ext_str == '_rebuttal_4' or ext_str =='_rebuttal_5' or ext_str == '_All' or ext_str == '_ICML_rebuttal_demos':
                 metrics = ['QD-Score', 'Coverage', 'BestReward', 'AverageReward']
                 scores_dicts = [qd_scores_dict, coverages_dict, best_perf_dict, avg_perf_dict]
-                make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, times_dict, seeds,ext_str)
+                if ext_str == '_All':
+                    data = 'raw'
+                    
+                    make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, times_dict, seeds,ext_str,data=data)
+                    print('done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                else:
+                    make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, times_dict, seeds,ext_str,data='mean_std')
             
-            plot_combined_figure(resultsfolder, labels, games, qd_scores_dict, coverages_dict, best_perf_dict, avg_perf_dict, times_dict, seeds, colors, markers, ext_str, format=format_)
+            plot_combined_figure(resultsfolder, labels, games, qd_scores_dict, coverages_dict, best_perf_dict, avg_perf_dict, times_dict, seeds, colors, markers, ext_str, format=format_,is_rl=is_rl)
             
             plot("QD-Score", resultsfolder,labels,games, qd_scores_dict, times_dict, seeds, colors, markers, ext_str, with_legend=True,format=format_)
             """plot("Coverage", resultsfolder,labels,games, coverages_dict, times_dict, seeds, colors, markers, ext_str, with_legend=True,format=format_)
