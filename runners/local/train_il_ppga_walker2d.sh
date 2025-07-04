@@ -6,24 +6,15 @@ SEED=${SEED:-1111}
 #SEED=2222
 #SEED=3333
 
-# intrinsic_module='zero'
-intrinsic_module=${intrinsic_module:-'gail'}
 
-# intrinsic_module='m_acgail'
-# intrinsic_module='m_cond_acgail'
+intrinsic_module=${intrinsic_module:-'gail'}
+# other choices: vail, diffail
+
+
 
 auxiliary_loss_fn='MSE'
 # auxiliary_loss_fn='NLL'
 
-#intrinsic_module='m_cond_gail'
-#intrinsic_module='diffail'
-#intrinsic_module='condiff'
-#intrinsic_module='m_cond_vail'
-#intrinsic_module='m_reg_gail'
-#intrinsic_module='m_cond_reg_gail'
-#intrinsic_module='gail'
-#intrinsic_module='m_reg_gail'
-# intrinsic_module='vail'
 
 GROUP_NAME="IL_ppga_"$ENV_NAME"_${intrinsic_module}"
 RUN_NAME=$GROUP_NAME"_seed_"$SEED

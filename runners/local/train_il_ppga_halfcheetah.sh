@@ -8,6 +8,7 @@ GRID_SIZE=50  # number of cells per archive dimension
 SEED=${SEED:-1111}
 
 intrinsic_module=${intrinsic_module:-'gail'}
+# other choices: vail, diffail
 
 
 

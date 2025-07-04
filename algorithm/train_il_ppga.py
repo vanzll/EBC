@@ -45,7 +45,7 @@ def parse_args():
                         default='reward_8_good_and_diverse_elite_with_measures_top500/')
     parser.add_argument('--auxiliary_loss_fn', type=str, default='MSE', choices=['MSE', 'NLL'],
                         help='auxiliary loss function for training ACGAILs and RegGAILs when predicting measures.')
-    parser.add_argument('--bonus_type', type=str, default='measure_error', 
+    parser.add_argument('--bonus_type', type=str, default='None', 
                         help='bonus type for m_reg methods',
                         choices=['measure_error', 'measure_error_nll', 'measure_entropy', 
                                  'fitness_cond_measure_entropy', 
