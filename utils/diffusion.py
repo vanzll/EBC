@@ -1,9 +1,4 @@
-# Conditional QDIL
-# 思路： 
-# 1.做多个dataset， dataloader，每一个dataset对应一个expert。（by 写一个data_scheduler, 写一个方法输出对应的dataset和c值)
-# 2.改写扩散模型的输入，训练逻辑和奖励计算逻辑。
-#（奖励计算需要考虑当前archive， 写一个reward_scheduler类， 结合expert的measure和当前archive， 输出为reward系数
-# Plan 1.7 and 1.8 完成
+
 from algorithm.data_loader import ExpertDataset
 from torch.utils.data import DataLoader
 from utils.cut_traj import split_trajectories

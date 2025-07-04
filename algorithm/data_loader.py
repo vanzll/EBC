@@ -13,19 +13,7 @@ import torch.nn.functional as F
 import pdb
 
 class ExpertDataset(torch.utils.data.TensorDataset):
-    """
 
-    Args:
-        root (string): Root directory of dataset where ``processed/training.pt``
-            and  ``processed/test.pt`` exist.
-        train (bool, optional): If True, creates dataset from ``training.pt``,
-            otherwise from ``test.pt``.
-        download (bool, optional): If true, downloads the dataset from the internet and
-            puts it in root directory. If dataset is already downloaded, it is not
-            downloaded again.
-        action_transform (callable, optional): A function/transform that takes in the
-            action and transforms it.
-    """
     def __init__(self, file_name, num_trajectories=10, train=True, train_test_split=1.0, \
         subsample_frequency=20, transform=None, action_transform=None, \
             return_next_state=False):
@@ -83,13 +71,7 @@ class ExpertDataset(torch.utils.data.TensorDataset):
             self.test_next_measures = self.trajectories['next_measures'][int(self.length*self.split):]
 
     def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
 
-        Returns:
-            tuple: (state, action) where action is index of the action class.
-        """
         if self.train:
             state, action, next_state, measure, next_measure = \
                 self.train_states[index], self.train_actions[index], self.train_next_states[index], \

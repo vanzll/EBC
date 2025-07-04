@@ -244,82 +244,30 @@ class GridArchive(ArchiveBase):
             self._dims,
         )).T.astype(np.int32)
         
-    def cal_bonus(self, measures_batch):
-        '''
-        measures_batch: [rollout_length, num_envs, num_dims] [128,3000,2], and {0,1}
-        '''
-        total_measure = torch.mean(measures_batch, axis=0,keepdims=False)# [3000,2]
-        idx = self.index_of(total_measure.cpu().numpy())#(batch_size,) array of integer indices representing the flattened grid coordinates.
-        grid_idx = self.int_to_grid_index(idx)
-        occupied = self._occupied_arr[idx]
-        breakpoint()
-        pass
-    def cal_single_step_bonus(self, single_step_measure):
-        '''
-        single_step_measure: [num_envs, num_dims] e.g. [3000,2], and belonging to {0,1}
-        '''
-        total_measure = single_step_measure
-        comp = {}
-        for i in range(total_measure.shape[1]):
-            if total_measure[i] == 1:
-                new_measure = total_measure.copy()
-                new_measure[:i] = 1 - new_measure[:i]
-                comp[i] = new_measure
-                
-        idx = self.index_of(total_measure.cpu().numpy())
-        grid_idx = self.int_to_grid_index(idx)  # 转换成网格坐标 [batch_size, num_dims]
-        
-        """   bonus_arr = 1-self._occupied_arr[idx]
-        return bonus_arr """
-        # Step 2: 提取已占据的网格
-        occupied_indices = np.where(self._occupied_arr)[0]  # 获得已占据的网格的整数索引
-        occupied_grid_idx = self.int_to_grid_index(occupied_indices)  # 转换成网格坐标 [n_occupied, num_dims]
-        
-        # Step 3: 使用 KDE 拟合已占据网格的分布
-        if len(occupied_grid_idx) == 0:
-            bonus = 0
-            return 0
-        
-        kde = KernelDensity(kernel='gaussian', bandwidth=1.0)  # 使用高斯核密度估计，带宽控制平滑程度
-        kde.fit(occupied_grid_idx)  # 拟合 KDE 模型到已占据的网格
-        time1 = time.time()
-        # Step 4: 计算当前 batch 的网格的概率密度
-        log_density = kde.score_samples(grid_idx)  # 计算每个网格在已占据区域的概率密度（对数形式）
-        density = np.exp(log_density)  # 取指数还原概率密度
-        time2 = time.time()
-        #print('time for fitting distribution:', time2-time1)
-        # Step 5: 基于密度值计算奖励
-        # 如果密度低，说明该网格探索较少，给予较高奖励
-        bonus = 1.0 / (density + 1e-8)  # 防止除以零
-        baseline_prob = 1/self._cells
-        bonus = -np.log(np.clip(density/baseline_prob,0.3,1))
-        
-        # Step 6: 返回计算结果
-        return bonus
-        
+
 
     def cal_bonus(self, measures_batch):
         '''
         measures_batch: [rollout_length, num_envs, num_dims] [128, 3000, 2], and {0,1}
         '''
         
-        # Step 1: 计算当前 batch 的 measure 并获取其对应的网格索引
-        total_measure = torch.mean(measures_batch, axis=0, keepdims=False)  # [3000, 2]
-        idx = self.index_of(total_measure.cpu().numpy())  # (batch_size,) array of integer indices representing the flattened grid coordinates.
-        grid_idx = self.int_to_grid_index(idx)  # 转换成网格坐标 [batch_size, num_dims]
+        
+        total_measure = torch.mean(measures_batch, axis=0, keepdims=False)  
+        idx = self.index_of(total_measure.cpu().numpy())  
+        grid_idx = self.int_to_grid_index(idx)  
         
         if self.cfg is not None and self.cfg.bonus_smooth == False:
             print('bonus_smooth is False')
             p, q = self.cfg.p, self.cfg.q
             
-            #bonus_arr = 1/(1+self._occupied_arr[idx])
+           
             bonus_arr = p + q*(1-self._occupied_arr[idx])
             return bonus_arr
-        # Step 2: 提取已占据的网格
-        occupied_indices = np.where(self._occupied_arr)[0]  # 获得已占据的网格的整数索引
-        occupied_grid_idx = self.int_to_grid_index(occupied_indices)  # 转换成网格坐标 [n_occupied, num_dims]
+      
+        occupied_indices = np.where(self._occupied_arr)[0]  
+        occupied_grid_idx = self.int_to_grid_index(occupied_indices)  
     
-        # Step 3: 使用 KDE 拟合已占据网格的分布
+     
         if len(occupied_grid_idx) == 0:
             bonus = 0
             return 0
@@ -328,53 +276,42 @@ class GridArchive(ArchiveBase):
 
 
      
-        kde = KernelDensity(kernel='gaussian', bandwidth=0.1)  # 使用高斯核密度估计，带宽控制平滑程度
-        kde.fit(occupied_grid_idx)  # 拟合 KDE 模型到已占据的网格
-        time1 = time.time()
-        # Step 4: 计算当前 batch 的网格的概率密度
-        log_density = kde.score_samples(grid_idx)  # 计算每个网格在已占据区域的概率密度（对数形式）
-        density = np.exp(log_density)  # 取指数还原概率密度
-        time2 = time.time()
-        #print('time for fitting distribution:', time2-time1)
-        # Step 5: 基于密度值计算奖励
-        # 如果密度低，说明该网格探索较少，给予较高奖励
-    
-        baseline_prob = 1/self._cells
+        kde = KernelDensity(kernel='gaussian', bandwidth=0.1)  
+        kde.fit(occupied_grid_idx) 
+   
+  
+        log_density = kde.score_samples(grid_idx)  
+        density = np.exp(log_density)  
         bonus = -np.log(np.clip(density,a_min=0.1, a_max=None))
         
         # Step 6: 返回计算结果
         return bonus
 
     def cal_coef(self, expert_measures):
-        '''
-        expert_measure: [num_experts, measure_dims] [128, 3000, 2], and {0,1}
-        return: (num_experts,)
-        '''
-        
-        # Step 1: 计算当前 batch 的 measure 并获取其对应的网格索引
-        total_measure = expert_measures  # [3000, 2]
-        idx = self.index_of(total_measure.cpu().numpy())  # (batch_size,) array of integer indices representing the flattened grid coordinates.
-        grid_idx = self.int_to_grid_index(idx)  # 转换成网格坐标 [batch_size, num_dims]
+     
+        total_measure = expert_measures  
+        idx = self.index_of(total_measure.cpu().numpy())  
+        grid_idx = self.int_to_grid_index(idx)  
         
        
-        # Step 2: 提取已占据的网格
-        occupied_indices = np.where(self._occupied_arr)[0]  # 获得已占据的网格的整数索引
-        occupied_grid_idx = self.int_to_grid_index(occupied_indices)  # 转换成网格坐标 [n_occupied, num_dims]
+       
+        occupied_indices = np.where(self._occupied_arr)[0]  
+        occupied_grid_idx = self.int_to_grid_index(occupied_indices)  
         
-        # Step 3: 使用 KDE 拟合已占据网格的分布
+     
         if len(occupied_grid_idx) == 0:
             n_experts = expert_measures.shape[0]
             return torch.ones(n_experts, device='cuda:0') / n_experts
         
         kde = KernelDensity(kernel='gaussian', bandwidth=1.0)
         kde.fit(occupied_grid_idx)
-        time1 = time.time()
+
         
-        # Step 4: 计算当前 batch 的网格的概率密度
+
         log_density = kde.score_samples(grid_idx)
         density = np.exp(log_density)
-        time2 = time.time()
-        #print('time for fitting distribution:', time2-time1)
+
+
         
     
         sparsity = 1/(density+1e-8)

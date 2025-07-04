@@ -16,11 +16,7 @@ def read_data(summary_file, subsample=n_subsample):
     Coverage = np.array(df["Coverage"])[0::subsample]*100
     BestReward = np.array(df["Maximum"])[0::subsample]
     AvgReward = np.array(df["Average"])[0::subsample]
-    # print(iterations.shape)
-    # print(QD_Score.shape)
-    # print(Coverage)
-    # print(BestReward)
-    # print(AvgReward.shape)
+
     return iterations, QD_Score, Coverage, BestReward, AvgReward
 
 def get_resultsfile(resultsfolder='experiments',method='gail',game='ant',seed='1111', is_rl=False):
@@ -182,30 +178,28 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
     metrics = ["QD-Score", "Coverage(%)", "BestReward", "AverageReward"]
     score_dicts = [qd_scores, coverages, best_perf, avg_perf]
 
-    # 创建大图，包含3行4列子图
+ 
     n_games = len(games)
     
-    # 如果是RL且只有一个游戏环境，使用2x2布局
+  
     if is_rl and n_games == 1:
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-        axes = axes.flatten()  # 将2x2数组展平为1维数组以便后续处理
+        axes = axes.flatten() 
     else:
         fig, axes = plt.subplots(n_games, 4, figsize=(20+5, 5*n_games+1))
         if n_games == 1:
             axes = np.expand_dims(axes, axis=0)
             
     fig.subplots_adjust(hspace=0.4, wspace=0.4)
-     # 调整底部边距，给图例留出空间
 
-    # 用于存储绘制的曲线以创建图例
     lines = []
     labels_legend = []
 
-    for row, game in enumerate(games):  # 每一行是一个环境
+    for row, game in enumerate(games):  
        
-        for col, metric in enumerate(metrics):  # 每一列是一个指标
+        for col, metric in enumerate(metrics):  
             if is_rl and n_games == 1:
-                ax = axes[col]  # 使用展平的axes数组
+                ax = axes[col]  
             else:
                 ax = axes[row, col]
                 
@@ -239,25 +233,25 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
                     line, = ax.plot(steps, score_m[game][label], marker=markers[label], color=colors[label], linewidth=2)
                 ax.fill_between(steps, score_l[game][label], score_u[game][label], color=colors[label], alpha=0.25)
                 
-                # 仅保存一次用于图例
+          
                 if row == 0 and col == 0:
                     lines.append(line)
                     labels_legend.append(label)
 
-            # 只在每一行的第一列写 ylabel
+      
             if (not is_rl or n_games > 1) and col == 0:
-                ax.set_ylabel(game.capitalize(), fontsize=25)  # 增大字体
+                ax.set_ylabel(game.capitalize(), fontsize=25)  
                 
-            # 只在每一行的顶部写指标名称
+        
             if (not is_rl or n_games > 1) and row == 0:
-                ax.set_title(metric, fontsize=27)  # 增大字体
+                ax.set_title(metric, fontsize=27)  
             elif is_rl and n_games == 1:
-                ax.set_title(metric, fontsize=27)  # 2x2布局时每个子图都需要标题
+                ax.set_title(metric, fontsize=27)  
             
-            ax.set_xlabel("Iterations", fontsize=18)  # 增大字体
-            ax.tick_params(axis='both', which='major', labelsize=14)  # 增大刻度字体
+            ax.set_xlabel("Iterations", fontsize=18)  
+            ax.tick_params(axis='both', which='major', labelsize=14)  
 
-    # 创建一个总的图例
+   
     if n_games == 1:
         if ext_str != '_rebuttal_3':
             if is_rl:
@@ -266,14 +260,14 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
                 fig.legend(lines, labels_legend, loc='upper center', bbox_to_anchor=(0.5, 0.15), fontsize=25, ncol=len(labels))  # 增大图例字体
         else:
             print('too many labels!')
-            # 将图例分为两行
+          
             fig.legend(
                 lines,
                 labels_legend,
                 loc='upper center',
-                bbox_to_anchor=(0.5, 0.13),  # 调高位置适应两行
+                bbox_to_anchor=(0.5, 0.13),  
                 fontsize=17,
-                ncol=int(len(labels) / 2)+1  # 分两行
+                ncol=int(len(labels) / 2)+1 
             )
     else:    
         fig.legend(lines, labels_legend, loc='upper center', bbox_to_anchor=(0.5, 0.1), fontsize=25, ncol=len(labels))
@@ -284,18 +278,18 @@ def plot_combined_figure(resultsfolder, labels, games, qd_scores, coverages, bes
         fig.savefig(f"{resultsfolder}/combined_{ext_str}_metrics.pdf", dpi=600)
     else:
         fig.savefig(f"{resultsfolder}/combined_{ext_str}_metrics.{format}", dpi=600)
-    # plt.show()
+
     plt.close(fig)
 
 
 def make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, times_dict, seeds,ext_str, data='mean_std'):
     import csv
     print('make_final_metrics_csv', f"{resultsfolder}/final_{ext_str}_metrics.csv")
-    # 打开 CSV 文件进行写入
+
     with open(f"{resultsfolder}/final_{ext_str}_metrics_{data}.csv", 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
 
-        # 写入表头：第一列是 'Game'，第二列是 'Model'，接下来是指标名称
+       
         header = ['Game', 'Model'] + metrics
         writer.writerow(header)
 
@@ -303,34 +297,34 @@ def make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, 
             for label in labels:
                 row = [game, label]
                 for metric_name, scores_dict in zip(metrics, scores_dicts):
-                    # 获取当前游戏和模型的得分和时间
-                    score = scores_dict[game][label]  # 形状：(num_seeds, num_evals)
-                    times_list = times_dict[game][label]  # 每个种子的时间列表
+                  
+                    score = scores_dict[game][label]  
+                    times_list = times_dict[game][label]  
 
                     final_values = []
                     for s_idx in range(len(seeds)):
-                        # 获取当前种子的时间和得分
+                       
                         times_s = times_list[s_idx]
                         scores_s = score[s_idx]
 
-                        # 找到最后一个非零的时间索引
+                       
                         non_zero_indices = np.nonzero(times_s)[0]
                         if len(non_zero_indices) == 0:
-                            continue  # 该种子没有数据
+                            continue 
 
                         last_idx = non_zero_indices[-1]
                         final_value = scores_s[last_idx]
                         final_values.append(final_value)
 
                     if len(final_values) == 0:
-                        avg_final_value = np.nan  # 如果没有数据，用 NaN 表示
+                        avg_final_value = np.nan  
                         std_final_value = np.nan
                     else:
-                        # 计算种子间的平均值
+                       
                         avg_final_value = np.mean(final_values)
                         std_final_value = np.std(final_values)
 
-                    # 根据指标格式化最终值
+                  
                     if metric_name == 'Coverage':
                         avg_final_value = round(avg_final_value,2)
                         std_final_value = round(std_final_value,2)
@@ -338,36 +332,23 @@ def make_final_metrics_csv(resultsfolder, labels, games, metrics, scores_dicts, 
                         avg_final_value = round(avg_final_value)
                         std_final_value = round(std_final_value)
                     print(f'{game}-{label}-{metric_name}-{final_values}')
-                    # avg_final_value = format(avg_final_value)
-                    # std_final_value = format(std_final_value)
+             
                     mean_std_final_value = f"{avg_final_value}$\pm${std_final_value}"
 
                     if data == 'mean_std':
-                        # 将平均最终值添加到行
+                      
                         row.append(mean_std_final_value)
                     if data == 'raw':
                         row.append(f"{final_values}")
-                # 写入行到 CSV 文件
+             
                 writer.writerow(row)
 import seaborn as sns
 import os
 def line_plot(num_demos, data_str, games, methods, labels, seeds, colors, markers,_format='png'):
-    """
-    绘制最后一轮的数据并展示不同 seed 的 band。
-    
-    参数:
-    - num_demos: 一个包含不同 num_demo 值的列表 (例如: [1, 2, 4])
-    - data_str: 结果文件夹的基础路径的一部分，用于找到文件夹
-    - games: 游戏列表
-    - methods: 方法列表
-    - labels: 每种方法的标签
-    - seeds: 种子列表
-    - colors: 每种方法的颜色
-    - markers: 每种方法的标记
-    """
+
     print('line_plot')
     metrics = ['QD-Score', 'Coverage', 'Maximum', 'Average']
-    missing_files = []  # 用于记录未找到的文件
+    missing_files = [] 
     
 
     for game in games:
@@ -381,49 +362,49 @@ def line_plot(num_demos, data_str, games, methods, labels, seeds, colors, marker
                     demo_scores = []
 
                     for seed in seeds:
-                        # 构造 summary 文件的路径
+                     
                         summary_file = f"experiments_{num_demo}_{data_str}/IL_ppga_{game}_{method}/{seed}/summary.csv"
                         
                         if not os.path.exists(summary_file):
                             print(f"File not found: {summary_file}")
-                            missing_files.append(summary_file)  # 记录文件缺失的路径
-                            continue  # 文件不存在，跳过这个 seed
+                            missing_files.append(summary_file) 
+                            continue  
                         
                         try:
-                            # 读取 summary.csv 文件
+                        
                             df = pd.read_csv(summary_file)
                             
-                            # 获取最后一轮的数据
-                            score = df[metric].iloc[-1]  # 获取最后一轮的数据
+                          
+                            score = df[metric].iloc[-1]  
                             demo_scores.append(score)
 
                         except Exception as e:
                             print(f"Error reading file: {summary_file}, error: {e}")
-                            missing_files.append(summary_file)  # 记录读取错误的文件
-                            continue  # 出现错误时也跳过这个 seed
+                            missing_files.append(summary_file)  
+                            continue  
 
-                    # 若存在有效数据，将其添加到 all_scores
+                 
                     if len(demo_scores) > 0:
                         all_scores.append(np.array(demo_scores))
 
-                # 确保 all_scores 是一个二维数组，补齐缺失数据并计算均值和标准误差
+        
                 if len(all_scores) > 0:
-                    max_len = max([len(demo) for demo in all_scores])  # 找出最大长度
+                    max_len = max([len(demo) for demo in all_scores])  
                     padded_scores = [np.pad(demo, (0, max_len - len(demo)), constant_values=np.nan) for demo in all_scores]
                     all_scores = np.array(padded_scores)
                     
                     means = np.nanmean(all_scores, axis=1)
                     std_errors = np.nanstd(all_scores, axis=1) / np.sqrt(len(seeds))
 
-                    # 检查 colors 和 markers 是否有足够的元素
+                
                     if i < len(colors) and i < len(markers):
                         ax.plot(num_demos[:len(means)], means, marker=markers[labels[i]], color=colors[labels[i]], linewidth=2, label=labels[i])
                         ax.fill_between(num_demos[:len(means)], means - std_errors, means + std_errors, color=colors[labels[i]], alpha=0.25)
                     else:
                         print(f"Index {i} out of bounds for colors or markers.")
-                        continue  # 跳过索引错误的情况
+                        continue  
 
-            # 设置标签、标题
+          
             ax.set_xlabel("num_demos", fontsize=14)
             ax.set_ylabel(metric, fontsize=14)
             ax.set_title(f'{game} - {metric}', fontsize=16)
@@ -438,7 +419,7 @@ def line_plot(num_demos, data_str, games, methods, labels, seeds, colors, marker
                 plt.savefig(f"{game}_{metric}_lineplot.{_format}", dpi=300,bbox_inches="tight")
                 print(f"Saved {game}_{metric}_lineplot.{_format}")
             plt.tight_layout()
-            # plt.show()
+    
 
 if __name__ == '__main__':
     markers = {
@@ -519,61 +500,61 @@ if __name__ == '__main__':
     colors = {
     "PPGA-trueReward": "black",  # expert
     'True Reward':'black',
-    'GAIL': 'green',    # baseline (中等的绿色)
-    'VAIL': 'darkorange',        # baseline (深橙色，具有高区分度)
-    'GIRIL': 'purple',       # baseline (亮蓝色，和主模型有明显区别)
-    'AIRL': 'grey',         # baseline (砖红色，区分度高)
-    'PWIL': 'darkturquoise',     # baseline (深青色)
-    'Max-Ent': 'goldenrod',      # baseline (深金色，替换lightgoldenrodyellow)
+    'GAIL': 'green',    # baseline 
+    'VAIL': 'darkorange',        # baseline 
+    'GIRIL': 'purple',       # baseline 
+    'AIRL': 'grey',         # baseline 
+    'PWIL': 'darkturquoise',     # baseline 
+    'Max-Ent': 'goldenrod',      # baseline 
     
-    'MConbo-GAIL': 'firebrick',  # main (鲜明的皇家蓝)
-    'MConbo-VAIL': 'blue',# main (深绿色)
+    'MConbo-GAIL': 'firebrick',  # main 
+    'MConbo-VAIL': 'blue',# main 
     
-    'MCond-GAIL': 'lightblue',     # ablation (深灰色)
-    'Mbo-GAIL': 'darkgoldenrod', # ablation (深金色)
+    'MCond-GAIL': 'lightblue',     # ablation 
+    'Mbo-GAIL': 'darkgoldenrod', # ablation 
     
-    'MConbo-GAIL-Obs': 'royalblue',  # IFO (中等紫色)
-    'GAIL-Obs': 'crimson'        # IFO (深红色)
+    'MConbo-GAIL-Obs': 'royalblue',  # IFO 
+    'GAIL-Obs': 'crimson'        # IFO 
 }
 
     colors.update({
-    'PPGA-trueReward-Bonus': 'blue',  # 延续 PPGA-trueReward 的颜色
-    'MConbo-GAIL-ExpertBonus': 'firebrick',  # 延续 MConbo-GAIL 的颜色
-    'p=-2.0 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
-    'p=-1.0 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
-    'p=-0.5 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
-    'p=0 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
-    'p=0.5 q=0.5': 'darkred',  # 参数配置 (深红色，区分度高)
-    'p=0.5 q=1': 'red',  # 参数配置 (鲜红色)
-    'p=0.5 q=2': 'lightcoral',  # 参数配置 (浅珊瑚色)
-    'p=1 q=0.5': 'blueviolet',  # 参数配置 (蓝紫色)
-    'p=1 q=1': 'mediumpurple',  # 参数配置 (中紫色)
-    'p=1 q=2': 'lavender',  # 参数配置 (淡紫色)
-    'p=2 q=0.5': 'darkblue',  # 参数配置 (深蓝色)
-    'p=2 q=1': 'royalblue',  # 参数配置 (皇家蓝)
-    'p=2 q=2': 'lightblue',  # 参数配置 (浅蓝色)
-    'MConbo-GAIL-10demo': 'firebrick',  # 延续 MConbo-GAIL 的颜色,
+    'PPGA-trueReward-Bonus': 'blue',  
+    'MConbo-GAIL-ExpertBonus': 'firebrick',  
+    'p=-2.0 q=0.5': 'darkred',  
+    'p=-1.0 q=0.5': 'darkred',  
+    'p=-0.5 q=0.5': 'darkred',  
+    'p=0 q=0.5': 'darkred', 
+    'p=0.5 q=0.5': 'darkred',  
+    'p=0.5 q=1': 'red',  
+    'p=0.5 q=2': 'lightcoral',  
+    'p=1 q=0.5': 'blueviolet',  
+    'p=1 q=1': 'mediumpurple',  
+    'p=1 q=2': 'lavender',  
+    'p=2 q=0.5': 'darkblue',  
+    'p=2 q=1': 'royalblue',  
+    'p=2 q=2': 'lightblue',  
+    'MConbo-GAIL-10demo': 'firebrick',  
     'MConbo-GAIL-4demo':'red',
     'MConbo-GAIL-ExpertNoBonus':'darkblue'
 })
 
     markers.update({
-    'PPGA-trueReward-Bonus': 'o',  # 延续 PPGA-trueReward 的标记
-    'MConbo-GAIL-ExpertBonus': ',',  # 延续 MConbo-GAIL 的标记
-    'p=-2.0 q=0.5': ',',  # 参数配置 (默认逗号)
-    'p=-1.0 q=0.5': ',',  # 参数配置 (默认逗号)
-    'p=-0.5 q=0.5': ',',  # 参数配置 (默认逗号)
-    'p=0 q=0.5': ',',  # 参数配置 (默认逗号)
-    'p=0.5 q=0.5': ',',  # 参数配置 (默认逗号)
-    'p=0.5 q=1': ',',  # 参数配置 (默认逗号)
-    'p=0.5 q=2': ',',  # 参数配置 (默认逗号)
-    'p=1 q=0.5': ',',  # 参数配置 (默认逗号)
-    'p=1 q=1': ',',  # 参数配置 (默认逗号)
-    'p=1 q=2': ',',  # 参数配置 (默认逗号)
-    'p=2 q=0.5': ',',  # 参数配置 (默认逗号)
-    'p=2 q=1': ',',  # 参数配置 (默认逗号)
-    'p=2 q=2': ',',  # 参数配置 (默认逗号)
-    'MConbo-GAIL-10demo': ',',  # 延续 MConbo-GAIL 的标记
+    'PPGA-trueReward-Bonus': 'o',  
+    'MConbo-GAIL-ExpertBonus': ',',  
+    'p=-2.0 q=0.5': ',',  
+    'p=-1.0 q=0.5': ',',  
+    'p=-0.5 q=0.5': ',',  
+    'p=0 q=0.5': ',',  
+    'p=0.5 q=0.5': ',',  
+    'p=0.5 q=1': ',',  
+    'p=0.5 q=2': ',',  
+    'p=1 q=0.5': ',', 
+    'p=1 q=1': ',',  
+    'p=1 q=2': ',',  
+    'p=2 q=0.5': ',', 
+    'p=2 q=1': ',',  
+    'p=2 q=2': ',',
+    'MConbo-GAIL-10demo': ',',  
     'MConbo-GAIL-4demo':',',
     'MConbo-GAIL-ExpertNoBonus':','
 })
@@ -634,16 +615,16 @@ if __name__ == '__main__':
                    'gail_main':['expert','m_cond_gail_archive_bonus_wo_smooth','gail','giril','pwil','airl_sigmoid','irl_sigmoid'],
                    'vail_main':['expert','m_cond_vail_archive_bonus_wo_smooth','vail','giril','pwil','airl_sigmoid','irl_sigmoid'],
                    'gail_ablation_bonus':['expert',
-                                    #'gail',
+                                    
                                     'm_cond_gail_archive_bonus_wo_smooth',
-                                    #'abgail_archive_bonus_wo_smooth',
+                                   
                                     'm_cond_gail'
                                     ],
                    'gail_ablation_cond':['expert',
-                                    #'gail',
+                                   
                                     'm_cond_gail_archive_bonus_wo_smooth',
                                     'abgail_archive_bonus_wo_smooth'
-                                    #'m_cond_gail'
+                                    
                                     ],
                     'diffusion':['expert',
                                     'gail',
@@ -661,19 +642,18 @@ if __name__ == '__main__':
                                     'm_cond_gail_archive_bonus_wo_smooth',
                                     
                                     'm_cond_gail'
-                                    #'m_cond_gail'
+                                    
                                     ],
                    'gail+vail':['expert','gail','vail','giril','pwil','airl_sigmoid','irl_sigmoid','m_cond_gail_archive_bonus_wo_smooth','m_cond_vail_archive_bonus_wo_smooth'],
                    'gail_scale':['expert','gail','m_cond_gail_archive_bonus_wo_smooth'],
                    'IFO':['expert',
                           'm_cond_gail_archive_bonus_wo_a_wo_smooth',
-                          'm_cond_gail_archive_bonus_wo_smooth',
-                          #'gail_wo_a',
-                          #'gail'
+                          'm_cond_gail_archive_bonus_wo_smooth'
+                       
                           ],
                    'rebuttal_1_2':['expert_archive_bonus_wo_smooth','m_cond_gail_archive_bonus_wo_smooth_p_0.5_q_0.5',
-                                   'expert','m_cond_gail_archive_bonus_wo_smooth_original'],#modify data str
-                   #modify data_str to ''archive_bonus_wo_smooth_...''.
+                                   'expert','m_cond_gail_archive_bonus_wo_smooth_original'],
+                   
                    'rebuttal_3':['m_cond_gail_archive_bonus_wo_smooth',
                                  'm_cond_gail_archive_bonus_wo_smooth_p_-2.0_q_0.5',
                                  'm_cond_gail_archive_bonus_wo_smooth_p_-1.0_q_0.5',
@@ -701,7 +681,7 @@ if __name__ == '__main__':
                         'vail_archive_bonus_wo_smooth_p_0_q_2',
                         'diffail_archive_bonus_wo_smooth'
                     ],
-                    #icml
+                    
                     'All':[
                            'gail_archive_bonus_wo_smooth_p_0_q_2',
                            'gail',
@@ -727,9 +707,8 @@ if __name__ == '__main__':
     tgts= ['diffusion'] # task1 and task2 respectively
     tgts = ['q_study']
     tgts = ['All']
-    tgts = ['ICML_rebuttal_demos']
-    # tgts = [tgt for tgt in methods_map.keys() if 'expert' in methods_map[tgt]]
-    # tgts = ['gail_scale']
+  
+
     for tgt in tgts:
         print(f"Plotting {tgt}")
         format_ = 'both'

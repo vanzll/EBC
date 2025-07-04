@@ -377,31 +377,29 @@ class IntrinsicPPO:
         dones: [rollout_length, num_envs]
         '''
         if single_step == False:
-            # 给measures 找到每一个dimension的index
+           
             indices = self.current_archive.int_to_grid_index(self.current_archive.index_of(measures)) # (batch_size,measure_dim)
             
-            # 使用numpy的高级索引并行更新visitation_archive
+         
             np.add.at(self.visitation_archive, tuple(indices.T), 1)
 
         elif single_step == True:
-            # measures: [rollout_length, num_envs, num_dims]
-            # dones: [rollout_length, num_envs]
+     
             
-            # Get trajectory lengths for each env based on first done
-            traj_lengths = torch.argmax(dones.long(), dim=0) + 1 # [num_envs]
+            traj_lengths = torch.argmax(dones.long(), dim=0) + 1 
             
-            # Create mask to zero out measures beyond trajectory length
+            
             mask = torch.arange(measures.shape[0], device=measures.device).unsqueeze(1) < traj_lengths.unsqueeze(0)
-            mask = mask.unsqueeze(-1) # [rollout_length, num_envs, 1]
+            mask = mask.unsqueeze(-1) 
             
-            # Mask and sum measures up to trajectory length
+           
             masked_measures = measures * mask
             summed_measures = masked_measures.sum(dim=0) # [num_envs, num_dims]
             
-            # Divide by trajectory lengths to get average
+            
             total_measures = summed_measures / traj_lengths.unsqueeze(-1) # [num_envs, num_dims]
             
-            # Convert to indices and update visitation archive
+            
             indices = self.current_archive.int_to_grid_index(
                 self.current_archive.index_of(total_measures.cpu().numpy())
             )
@@ -418,24 +416,24 @@ class IntrinsicPPO:
         measures, dones = self.measures, self.dones
         traj_lengths = torch.argmax(dones.long(), dim=0) + 1 # [num_envs]
         
-        # Create mask to zero out measures beyond trajectory length
+
         mask = torch.arange(measures.shape[0], device=measures.device).unsqueeze(1) < traj_lengths.unsqueeze(0)
         mask = mask.unsqueeze(-1) # [rollout_length, num_envs, 1]
         
-        # Mask and sum measures up to trajectory length
+     
         masked_measures = measures * mask
         summed_measures = masked_measures.sum(dim=0) # [num_envs, num_dims]
         
-        # Divide by trajectory lengths to get average
+
         total_measures = summed_measures / traj_lengths.unsqueeze(-1) # [num_envs, num_dims]
         
-        # Convert to indices and update visitation archive
+   
         indices = self.current_archive.int_to_grid_index(
             self.current_archive.index_of(total_measures.cpu().numpy())
         )# num_envs, num_dims
 
         normalized_archive = self.visitation_archive / np.sum(self.visitation_archive)
-        probs = normalized_archive[tuple(indices.T)]  # Convert indices to tuple of arrays for proper indexing
+        probs = normalized_archive[tuple(indices.T)] 
         baseline_probs = 1/(self.cfg.grid_size**self.cfg.num_dims)
         bonus = -np.log(probs/baseline_probs)# log form
         bonus = 1/(1 + probs/baseline_probs)
@@ -1016,11 +1014,7 @@ class IntrinsicPPO:
         measures = summed_measures / traj_lengths.unsqueeze(-1)  
 
         measures = measures.reshape(vec_agent.num_models, vec_env.num_envs // vec_agent.num_models, -1).mean(dim=1).detach().cpu().numpy()
-        # -----------------without vectorize
-        """ for i in range(vec_env.num_envs):
-                measures[i] = measures_acc[:traj_lengths[i], i].sum(dim=0) / traj_lengths[i]
-            measures = measures.reshape(vec_agent.num_models, vec_env.num_envs // vec_agent.num_models, -1).mean(dim=1).detach().cpu().numpy() """
-        #---------------------------
+      
         total_reward = total_reward.reshape((vec_agent.num_models, vec_env.num_envs // vec_agent.num_models)).mean(
             axis=1)
         avg_traj_lengths = traj_lengths.to(torch.float32).reshape((vec_agent.num_models, vec_env.num_envs // vec_agent.num_models)).\
@@ -1048,6 +1042,6 @@ class IntrinsicPPO:
             log.info(f'Min Reward on eval: {min_reward}')
             log.info(f'Mean Reward across all agents: {mean_reward}')
             log.info(f'Average Trajectory Length: {mean_traj_length}')
-        #measures: (batch_size, num_dims)
+ 
         self.update_visitation_archive(measures, single_step=False, dones = None)
         return total_reward.reshape(-1, ), measures.reshape(-1, self.cfg.num_dims), metadata

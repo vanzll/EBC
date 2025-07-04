@@ -177,33 +177,27 @@ class InverseModel(nn.Module):
         self.output_dim = action_dim
         self.hidden = hidden_dim
 
-        # Inverse Model architecture
         self.linear_1 = nn.Linear(in_features=self.input_dim*2, out_features=self.hidden)
         self.linear_2 = nn.Linear(in_features=self.hidden, out_features=self.hidden)
         self.output = nn.Linear(in_features=self.hidden, out_features=self.output_dim)
 
-        # Leaky relu activation
         self.tanh_1 = nn.Tanh()
         self.tanh_2 = nn.Tanh()
 
-        # Output Activation
-        # self.softmax = nn.Softmax()
-
-        # Initialize the weights using xavier initialization
         nn.init.xavier_uniform_(self.linear_1.weight)
         nn.init.xavier_uniform_(self.linear_2.weight)
         nn.init.xavier_uniform_(self.output.weight)
 
     def forward(self, state, next_state):
 
-        # Concatenate the state and the next state
+
         input = torch.cat([state, next_state], dim=-1)
         x = self.linear_1(input)
         x = self.tanh_1(x)
         x = self.linear_2(x)
         x = self.tanh_2(x)
         x = self.output(x)
-        #output = self.softmax(x)
+
         return x
 
 
@@ -267,19 +261,14 @@ class GAILdiscriminator(nn.Module):
         self.hidden = hidden_dim
         self.action_dim = action_dim 
 
-        # discriminator architecture
         self.linear_1 = nn.Linear(in_features=self.input_dim+self.action_dim, out_features=self.hidden)
         self.linear_2 = nn.Linear(in_features=self.hidden, out_features=self.hidden)
         self.output = nn.Linear(in_features=self.hidden, out_features=self.output_dim)
 
-        # Leaky relu activation
         self.tanh_1 = nn.Tanh()
         self.tanh_2 = nn.Tanh()
 
-        # Output Activation
-        # self.softmax = nn.Softmax()
 
-        # Initialize the weights using xavier initialization
         nn.init.xavier_uniform_(self.linear_1.weight)
         nn.init.xavier_uniform_(self.linear_2.weight)
         nn.init.xavier_uniform_(self.output.weight)
@@ -303,19 +292,15 @@ class GAILdiscriminator_wo_a(nn.Module):
         self.hidden = hidden_dim
         self.action_dim = action_dim 
 
-        # discriminator architecture
+
         self.linear_1 = nn.Linear(in_features=self.input_dim, out_features=self.hidden)
         self.linear_2 = nn.Linear(in_features=self.hidden, out_features=self.hidden)
         self.output = nn.Linear(in_features=self.hidden, out_features=self.output_dim)
 
-        # Leaky relu activation
+   
         self.tanh_1 = nn.Tanh()
         self.tanh_2 = nn.Tanh()
 
-        # Output Activation
-        # self.softmax = nn.Softmax()
-
-        # Initialize the weights using xavier initialization
         nn.init.xavier_uniform_(self.linear_1.weight)
         nn.init.xavier_uniform_(self.linear_2.weight)
         nn.init.xavier_uniform_(self.output.weight)
@@ -348,18 +333,17 @@ class PWIL(object):
         self.expert_dataloader = expert_dataloader
         self.expert_memory = iter(self.expert_dataloader)
         self.time_horizon =  time_horizon
-        self.data_scale, self.data_offset = self._calculate_normalisation_scale_offset(self._get_expert_atoms())  # Calculate normalisation parameters for the data
+        self.data_scale, self.data_offset = self._calculate_normalisation_scale_offset(self._get_expert_atoms())  
         self.reward_scale = reward_scale 
-        self.reward_bandwidth = reward_bandwidth_scale * self.time_horizon / sqrt(obs_dim + action_dim)  # Reward function hyperparameters (based on α and β)
+        self.reward_bandwidth = reward_bandwidth_scale * self.time_horizon / sqrt(obs_dim + action_dim)  
         self.reset()
 
-    # Returns the scale and offset to normalise data based on mean and standard deviation
     def _calculate_normalisation_scale_offset(self, data: Tensor) -> Tuple[Tensor, Tensor]:
-        inv_scale, offset = data.std(dim=0, keepdims=True), -data.mean(dim=0, keepdims=True)  # Calculate statistics over dataset
-        inv_scale[inv_scale == 0] = 1  # Set (inverse) scale to 1 if feature is constant (no variance)
+        inv_scale, offset = data.std(dim=0, keepdims=True), -data.mean(dim=0, keepdims=True)  
+        inv_scale[inv_scale == 0] = 1  
         return 1 / inv_scale, offset
 
-    # Returns a tensor with a "row" (dim 0) deleted
+  
     def _delete_row(self, data: Tensor, index: int) -> Tensor:
         return torch.cat([data[:index], data[index + 1:]], dim=0)
 
@@ -374,55 +358,55 @@ class PWIL(object):
         return torch.cat([expert_state, expert_action], dim=1).to(self.device)
 
     def reset(self):
-        self.expert_atoms = self.data_scale * (self._get_expert_atoms() + self.data_offset)  # Get and normalise the expert atoms
+        self.expert_atoms = self.data_scale * (self._get_expert_atoms() + self.data_offset) 
         self.expert_weights = torch.full((self.expert_atoms.shape[0], ), 1 / self.expert_atoms.shape[0]).to(self.device)
 
-    # parallized version
+  
     def calculate_intrinsic_reward(self, state, action, 
                                    use_original_reward=True, alpha=1e-8, reward_type=None):
-        # Normalize agent atoms for the whole batch
+     
         agent_atoms = torch.cat([state, action], dim=1)
-        agent_atoms = self.data_scale * (agent_atoms + self.data_offset)  # Normalize agent atoms
+        agent_atoms = self.data_scale * (agent_atoms + self.data_offset) 
 
-        # Compute pairwise distances between agent atoms and expert atoms
-        dists = torch.cdist(agent_atoms, self.expert_atoms)  # Shape: [batch_size, num_expert_atoms]
+    
+        dists = torch.cdist(agent_atoms, self.expert_atoms)  #
 
-        # Initialize weights and costs
+        
         weights = torch.full((state.shape[0],), 1 / self.time_horizon - 1e-6).to(self.device)
         costs = torch.zeros(state.shape[0], device=self.device)
 
-        # Repeat the expert atoms and weights to match batch size
+        
         expert_atoms = self.expert_atoms.clone()
         expert_weights = self.expert_weights.clone()
 
-        # Iterate until all weights in the batch are zero
+        
         while torch.any(weights > 0):
-            # Find the closest expert atom for each agent atom
-            closest_expert_idx = dists.argmin(dim=1)  # Shape: [batch_size]
+            
+            closest_expert_idx = dists.argmin(dim=1)  
             closest_dists = dists.gather(1, closest_expert_idx.unsqueeze(1)).squeeze(1)
 
-            # Get expert weights of the closest atoms
+            
             closest_expert_weights = expert_weights[closest_expert_idx]
 
-            # Compute how much weight to subtract
+            
             weight_to_subtract = torch.minimum(weights, closest_expert_weights)
 
-            # Update the costs for each agent
+            
             costs += weight_to_subtract * closest_dists
 
-            # Update expert weights and batch weights
+            
             expert_weights[closest_expert_idx] -= weight_to_subtract
             weights -= weight_to_subtract
 
-            # Set weights of exhausted expert atoms to zero
+            
             expert_mask = expert_weights > 0
             expert_atoms = expert_atoms[expert_mask]
             expert_weights = expert_weights[expert_mask]
 
-            # Update distances by keeping only the remaining expert atoms
+      
             dists = torch.cdist(agent_atoms, expert_atoms)
 
-        # Calculate rewards for the batch
+ 
         rewards = self.reward_scale * torch.exp(-self.reward_bandwidth * costs)
 
         return rewards
@@ -700,7 +684,7 @@ class DiffAIL(object):
         self.use_grad_pen = use_grad_pen
         self.grad_pen_weight = grad_pen_weight
         
-        # 使用与原始实现相同的模型结构
+
         self.model = MLP(x_dim=obs_dim+action_dim, hid_dim=disc_hid_dim, device=device)
         self.discriminator = DiffAILDiscriminator(
             input_dim=obs_dim,
@@ -760,14 +744,14 @@ class DiffAIL(object):
         n = 0
 
         for expert_batch, policy_batch in tqdm(zip(expert_loader, policy_data_generator), desc="Training discriminator",total=len(expert_loader)):
-            # 获取policy数据
+     
             #time
             import time
             begin_time = time.time()
             policy_state, policy_action = policy_batch[0], policy_batch[1]
             policy_disc_input = torch.cat([policy_state, policy_action], dim=1)  # 注意这里action在前
             
-            # 获取expert数据
+            
             expert_state, expert_action, _ = expert_batch
             if obsfilt is not None:
                 expert_state = obsfilt(expert_state.numpy(), update=False)
@@ -775,11 +759,11 @@ class DiffAIL(object):
             expert_action = expert_action.to(self.device)
             expert_disc_input = torch.cat([expert_state, expert_action], dim=1)  # 注意这里action在前
 
-            # 计算discriminator loss
+            
             expert_d = self.discriminator.diffusion.loss(expert_disc_input, disc_ddpm=True).unsqueeze(dim=1)
             policy_d = self.discriminator.diffusion.loss(policy_disc_input, disc_ddpm=True).unsqueeze(dim=1)
             
-            # 使用BCE loss
+            
             expert_loss = F.binary_cross_entropy_with_logits(
                 expert_d,
                 torch.ones(expert_d.size()).to(self.device))
@@ -789,7 +773,7 @@ class DiffAIL(object):
 
             gail_loss = expert_loss + policy_loss
 
-            # 计算梯度惩罚
+            
             if self.use_grad_pen:
                 eps = torch.rand(expert_state.size(0), 1).to(self.device)
                 interp_obs = eps * expert_disc_input + (1 - eps) * policy_disc_input
@@ -815,7 +799,7 @@ class DiffAIL(object):
             loss += total_loss.item()
             n += 1
 
-            # 优化器步骤
+            
             self.discriminator.diff_optim.zero_grad()
             total_loss.backward()
             self.discriminator.diff_optim.step()
@@ -829,10 +813,9 @@ class DiffAIL(object):
                                  use_original_reward=True, alpha=1e-8):
         with torch.no_grad():
             disc_input = torch.cat([state, action], dim=1)
-            #time_start = time.time()
+            
             d = self.discriminator(disc_input)
-            #time_end = time.time()
-            #print(f'discriminator time: {time_end-time_start:.4f}s')
+            
             
             
             reward = -torch.log(1 - d + alpha)
@@ -866,7 +849,7 @@ class Condiff_Discriminator(nn.Module):
     def forward(self, x):
         batch = x.to(self.device)
      
-        disc_cost = self.diffusion.calc_reward(batch) #most time consuming
+        disc_cost = self.diffusion.calc_reward(batch) 
      
 
         return disc_cost
@@ -892,7 +875,7 @@ class ConDiff(object):
         self.use_grad_pen = use_grad_pen
         self.grad_pen_weight = grad_pen_weight
         
-        # 使用与原始实现相同的模型结构
+      
        
         self.discriminator = Condiff_Discriminator(
             input_dim=obs_dim,
@@ -947,17 +930,15 @@ class ConDiff(object):
     
 
     def update(self, dataset_scheduler: dataset_scheduler, num_minibatches, b_obs, b_actions, obsfilt=None):
-        split_data = dataset_scheduler.splited_data # dict of dataset and dataloader, and the measure of each expert
+        split_data = dataset_scheduler.splited_data 
         for expert_idx, data in split_data.items():
             dataset, dataloader, measure,c = data['dataset'], data['dataloader'], data['measure'], data['c']
-            # c: Tensor of shape (c_dim)
+          
             self.update_one_expert(dataloader, c, num_minibatches, b_obs, b_actions, obsfilt)
         
 
     def update_one_expert(self, expert_loader, c_array, num_minibatches, b_obs, b_actions, obsfilt=None):
-        '''
-        c: Tensor of shape (c_dim)
-        '''
+    
         policy_data_generator = self.feed_forward_generator(
             b_obs, b_actions, num_minibatches, expert_loader.batch_size)
 
@@ -965,7 +946,7 @@ class ConDiff(object):
         n = 0
         c_array = c_array.to(self.device)
         for expert_batch, policy_batch in tqdm(zip(expert_loader, policy_data_generator), desc="Training discriminator",total=len(expert_loader)):
-            # 获取policy数据
+            
             #time
    
            
@@ -975,7 +956,7 @@ class ConDiff(object):
 
             policy_disc_input = torch.cat([policy_state, policy_action, c_array_policy], dim=1) 
             
-            # 获取expert数据
+            
             expert_state, expert_action, _ = expert_batch
             if obsfilt is not None:
                 expert_state = obsfilt(expert_state.numpy(), update=False)
@@ -984,11 +965,11 @@ class ConDiff(object):
             c_array_expert = c_array.unsqueeze(0).repeat(expert_state.size(0), 1)
             expert_disc_input = torch.cat([expert_state, expert_action, c_array_expert], dim=1)  
 
-            # 计算discriminator loss
+           
             expert_d = self.discriminator.diffusion.loss(expert_disc_input, disc_ddpm=True).unsqueeze(dim=1)
             policy_d = self.discriminator.diffusion.loss(policy_disc_input, disc_ddpm=True).unsqueeze(dim=1)
             
-            # 使用BCE loss
+            
             expert_loss = F.binary_cross_entropy_with_logits(
                 expert_d,
                 torch.ones(expert_d.size()).to(self.device))
@@ -998,7 +979,7 @@ class ConDiff(object):
 
             gail_loss = expert_loss + policy_loss
 
-            # 计算梯度惩罚
+            
             if self.use_grad_pen:
                 eps = torch.rand(expert_state.size(0), 1).to(self.device)
                 interp_obs = eps * expert_disc_input + (1 - eps) * policy_disc_input
@@ -1024,7 +1005,7 @@ class ConDiff(object):
             loss += total_loss.item()
             n += 1
 
-            # 优化器步骤
+            
             self.discriminator.diff_optim.zero_grad()
             total_loss.backward()
             self.discriminator.diff_optim.step()
@@ -1056,11 +1037,9 @@ class ConDiff(object):
             return reward / np.sqrt(self.ret_rms.var[0] + alpha)
     def calculate_intrinsic_reward(self, dataset_scheduler: dataset_scheduler, state, action, current_archive,
                                 use_original_reward=True, alpha=1e-8):
-        '''
-        并行化版本
-        '''
+       
      
-        # 1. 收集所有expert的c值
+        
         expert_cs = []
         expert_idxs = []
         for expert_idx, data in dataset_scheduler.splited_data.items():
@@ -1069,37 +1048,37 @@ class ConDiff(object):
         
    
         
-        # 2. 将所有c堆叠成一个批次
+       
         c_batch = torch.stack(expert_cs).to(self.device)  # shape: (num_experts, c_dim)
         
       
         
-        # 3. 并行计算所有expert的reward
+       
         with torch.no_grad():
-            # 扩展state和action以匹配每个expert
+            
             state_expanded = state.unsqueeze(0).expand(len(expert_cs), -1, -1)  # shape: (num_experts, batch_size, state_dim)
             action_expanded = action.unsqueeze(0).expand(len(expert_cs), -1, -1)  # shape: (num_experts, batch_size, action_dim)
             c_expanded = c_batch.unsqueeze(1).expand(-1, state.size(0), -1)  # shape: (num_experts, batch_size, c_dim)
             
-            # 将所有输入连接起来并重塑为2D张量
+            
             disc_input = torch.cat([
                 state_expanded.reshape(len(expert_cs) * state.size(0), -1),
                 action_expanded.reshape(len(expert_cs) * state.size(0), -1),
                 c_expanded.reshape(len(expert_cs) * state.size(0), -1)
             ], dim=1)
             
-            # 并行计算discriminator输出
+           
             d = self.discriminator(disc_input)
             
-            # 重塑回原始维度
+            
             d = d.reshape(len(expert_cs), state.size(0))
             
-            # 构建reward字典 - 保持与cal_weighted_reward函数期望的格式一致
+            
             reward_dic = {idx: d[i] for i, idx in enumerate(expert_idxs)}
 
   
 
-        # 4. 计算加权reward
+        
         weighted_reward = dataset_scheduler.cal_weighted_reward(reward_dic, current_archive)
         reward = -torch.log(1 - weighted_reward + alpha)
         
@@ -1152,23 +1131,14 @@ class abGAIL(object):
         self.single_step_archive = torch.ones([2]*measure_dim).to(self.device)#shape: 2*2*2*2...(measure_dim)
         
     def update_single_step_archive(self, single_step_measure):
-        '''
-        single_step_measure: tensor of shape (batch_size, measure_dim)
-        e.g. [[1,1,0,0],[0,0,1,0]]
-        '''
+        
         indices = single_step_measure.t().long() 
         values = torch.ones(single_step_measure.size(0)).to(self.device)  
 
         
         self.single_step_archive.index_put_(tuple(indices), values, accumulate=True)
     def calculate_single_step_bonus(self, single_step_measure,k=5):
-        '''
-        archive_distribution: tensor of shape (2,2,2,2,...,2) 2^measure_dim
-        single_step_measure: tensor of shape (batch_size, measure_dim)
-        e.g. [[1,1,0,0],[0,0,1,0]]
         
-        return: tensor of shape (batch_size,)
-        '''
         archive_distribution = self.single_step_archive / self.single_step_archive.sum()
         
         indices = list(single_step_measure.long().t()) # measure_dim * batch_size
@@ -1216,8 +1186,7 @@ class abGAIL(object):
                                ):
 
         batch_size = b_obs.shape[1]
-        # if minibatch_size is None:
-        #     minibatch_size = batch_size // num_minibatches
+        
         sampler = BatchSampler(
             SubsetRandomSampler(range(batch_size)),
             minibatch_size,
@@ -1235,7 +1204,7 @@ class abGAIL(object):
 
         loss = 0
         n = 0
-        # pdb.set_trace()
+        
         for expert_batch, policy_batch in zip(expert_loader,
                                               policy_data_generator):
             policy_state, policy_action = policy_batch[0], policy_batch[1]
@@ -1886,23 +1855,14 @@ class mRegGAIL(object):
         self.single_step_archive = torch.ones([2]*measure_dim).to(self.device)#shape: 2*2*2*2...(measure_dim)
         
     def update_single_step_archive(self, single_step_measure):
-        '''
-        single_step_measure: tensor of shape (batch_size, measure_dim)
-        e.g. [[1,1,0,0],[0,0,1,0]]
-        '''
+   
         indices = single_step_measure.t().long()  # Transpose to get the indices in the correct format
         values = torch.ones(single_step_measure.size(0)).to(self.device)  # Create a tensor of ones with size batch_size
 
         # Use scatter_add_ to accumulate values in the archive
         self.single_step_archive.index_put_(tuple(indices), values, accumulate=True)
     def calculate_single_step_bonus(self, single_step_measure):
-        '''
-        archive_distribution: tensor of shape (2,2,2,2,...,2) 2^measure_dim
-        single_step_measure: tensor of shape (batch_size, measure_dim)
-        e.g. [[1,1,0,0],[0,0,1,0]]
-        
-        return: tensor of shape (batch_size,)
-        '''
+  
         archive_distribution = self.single_step_archive / self.single_step_archive.sum()
         
         indices = list(single_step_measure.long().t()) # measure_dim * batch_size
