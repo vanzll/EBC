@@ -39,11 +39,17 @@ auxiliary_loss_fn='MSE'
 
 GROUP_NAME=IL_ppga_"$ENV_NAME"_${intrinsic_module} #_RegLoss_${auxiliary_loss_fn}_Bonus_${bonus_type}
 RUN_NAME=$GROUP_NAME"_seed_"$SEED
-num_demo=4
-gail_batchsize=200
+num_demo=${num_demo:-1}
+
+gail_batchsize=$((50*$num_demo))
 
 echo $RUN_NAME
+demo_mode = ${demo_mode:-'good and diverse'} # choose from 'good and diverse', 'best'
 data_str=good_and_diverse_elite_with_measures_top500
+
+if [ "$demo_mode" = "best" ]; then
+    data_str=best_elite_with_measures_top4
+fi
 # data_str=archive_bonus_wo_smooth_$data_str
 # cp_dir=./experiments_${num_demo}_${data_str}/$GROUP_NAME/${SEED}/checkpoints
 # cp_iter=00000740
@@ -76,7 +82,7 @@ fi
 p=${p:-0.5}
 q=${q:-1}
 GROUP_NAME="${GROUP_NAME}_p_${p}_q_${q}"
-echo $GROUP_NAME
+echo "Experiment directory: ./experiments_${num_demo}_${data_str}/$GROUP_NAME"
 python -m algorithm.train_il_ppga --env_name=$ENV_NAME \
                                 --bonus_smooth=${bonus_smooth} \
                                 --wo_a=${wo_a} \

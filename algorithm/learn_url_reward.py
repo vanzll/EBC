@@ -32,6 +32,11 @@ from typing import Dict, Optional, Tuple
 from ddpm_disc.diffusion.diffusion import Diffusion
 from ddpm_disc.diffusion.model import MLP
 from utils.diffusion import dataset_scheduler
+from math import ceil, exp, sqrt
+from typing import Dict, Optional, Tuple
+from torch import Tensor
+
+
 def process(tensor, normalize=False, range=None, scale_each=False):
     """Make a grid of images.
     Args:
@@ -316,7 +321,7 @@ class GAILdiscriminator_wo_a(nn.Module):
         nn.init.xavier_uniform_(self.output.weight)
 
     def forward(self, x):
-        #x的最后一个维度只取前input_dim个
+
         x = x[..., :self.input_dim]
         
         x = self.linear_1(x)
@@ -327,12 +332,6 @@ class GAILdiscriminator_wo_a(nn.Module):
         return x
     
 
-    
-    
-    
-from math import ceil, exp, sqrt
-from typing import Dict, Optional, Tuple
-from torch import Tensor
 class PWIL(object):
     def __init__(self,
                  obs_dim,

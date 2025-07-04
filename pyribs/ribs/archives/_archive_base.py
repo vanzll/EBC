@@ -407,6 +407,20 @@ class ArchiveBase(ABC):  # pylint: disable = too-many-instance-attributes
         check_1d_shape(measures, "measures", self.measure_dim, "measure_dim")
         check_finite(measures, "measures")
         return self.index_of(measures[None])[0]
+    
+    
+    def get_all_fitness(self):
+        """Returns a list of fitness values for all elites in the archive.
+
+        Returns:
+            numpy.ndarray: An array containing the fitness (objective) values of
+            all elites currently in the archive.
+        """
+        if self.empty:
+            return np.array([], dtype=self.dtype)
+        
+        indices = self._occupied_indices[:self._num_occupied]
+        return readonly(np.copy(self._objective_arr[indices]))
 
     def _validate_add_args(self, solution_batch, objective_batch,
                            measures_batch, metadata_batch):
@@ -1027,6 +1041,19 @@ class ArchiveBase(ABC):  # pylint: disable = too-many-instance-attributes
             readonly(selected_indices),
             readonly(self._metadata_arr[selected_indices]),
         )
+
+    def get_all_fitness(self):
+        """Returns a list of fitness values for all elites in the archive.
+
+        Returns:
+            numpy.ndarray: An array containing the fitness (objective) values of
+            all elites currently in the archive.
+        """
+        if self.empty:
+            return np.array([], dtype=self.dtype)
+        
+        indices = self._occupied_indices[:self._num_occupied]
+        return readonly(np.copy(self._objective_arr[indices]))
 
     def as_pandas(self, include_solutions=True, include_metadata=False):
         """Converts the archive into an :class:`ArchiveDataFrame` (a child class
