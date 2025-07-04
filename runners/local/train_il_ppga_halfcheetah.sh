@@ -4,7 +4,7 @@
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
 ENV_NAME="halfcheetah"
-GRID_SIZE=50  # number of cells per archive dimension
+GRID_SIZE=50  
 SEED=${SEED:-1111}
 
 intrinsic_module=${intrinsic_module:-'gail'}
@@ -16,7 +16,7 @@ auxiliary_loss_fn='MSE'
 
 
 
-GROUP_NAME=IL_ppga_"$ENV_NAME"_${intrinsic_module} #_RegLoss_${auxiliary_loss_fn}_Bonus_${bonus_type}
+GROUP_NAME=IL_ppga_"$ENV_NAME"_${intrinsic_module} 
 RUN_NAME=$GROUP_NAME"_seed_"$SEED
 num_elite=4
 num_demo_per_elite=50
@@ -29,11 +29,8 @@ gail_batchsize=200
 echo $RUN_NAME
 data_str=good_and_diverse_elite_with_measures_top500
 
-# cp_dir=./experiments_${num_demo}_${data_str}/$GROUP_NAME/${SEED}/checkpoints
-# cp_iter=00000740
-# scheduler_cp=${cp_dir}/cp_${cp_iter}/scheduler_${cp_iter}.pkl
-# archive_cp=${cp_dir}/cp_${cp_iter}/archive_df_${cp_iter}.pkl
-archive_bonus=${archive_bonus:-True}
+
+archive_bonus=${archive_bonus:-True} # if False, then no archive bonus is used (baseline version)
 if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi

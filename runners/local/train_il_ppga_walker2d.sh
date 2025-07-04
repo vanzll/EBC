@@ -13,7 +13,6 @@ intrinsic_module=${intrinsic_module:-'gail'}
 
 
 auxiliary_loss_fn='MSE'
-# auxiliary_loss_fn='NLL'
 
 
 GROUP_NAME="IL_ppga_"$ENV_NAME"_${intrinsic_module}"
@@ -22,7 +21,7 @@ num_demo=4
 gail_batchsize=120
 echo $RUN_NAME
 data_str=good_and_diverse_elite_with_measures_top500
-archive_bonus=${archive_bonus:-True}
+archive_bonus=${archive_bonus:-True} # if False, then no archive bonus is used (baseline version)
 if [ "$archive_bonus" = "True" ]; then
     GROUP_NAME="${GROUP_NAME}_archive_bonus"
 fi
