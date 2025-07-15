@@ -10,12 +10,21 @@ Extrinsic Behavior Curiosity (EBC) mechanism is a technique which enables the ro
 Some key components of this repository is adapted from [PPGA](https://arxiv.org/abs/2305.13795) paper.
 
 ## 2. Experiment
+
+### 2.0 Clone the repository.
+Run below command in your terminal:
+
+```
+git clone https://github.com/vanzll/EBC.git
+cd EBC
+```
+
 ### 2.1 Installing key packages.
 Simply run below command line:
 ```python
 conda create -n QD-EBC python==3.9.19
 conda activate QD-EBC
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 
