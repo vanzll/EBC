@@ -55,9 +55,13 @@ The figure below shows the performance comparison of all four metrics across thr
 If you found our work helpful, please consider to cite our work via:
 
 ```
-@inproceedings{wandiversifying,
-  title={Diversifying Robot Locomotion Behaviors with Extrinsic Behavioral Curiosity},
-  author={Wan, Zhenglin and Yu, Xingrui and Bossens, David Mark and Lyu, Yueming and Guo, Qing and Fan, Flint Xiaofeng and Ong, Yew-Soon and Tsang, Ivor},
-  booktitle={Forty-second International Conference on Machine Learning}
+@misc{wan2025diversifyingrobotlocomotionbehaviors,
+      title={Diversifying Robot Locomotion Behaviors with Extrinsic Behavioral Curiosity}, 
+      author={Zhenglin Wan and Xingrui Yu and David Mark Bossens and Yueming Lyu and Qing Guo and Flint Xiaofeng Fan and Yew Soon Ong and Ivor Tsang},
+      year={2025},
+      eprint={2410.06151},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2410.06151}, 
 }
 ```
