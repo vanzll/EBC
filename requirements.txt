@@ -17,11 +17,11 @@ audioread==3.0.1
 av==14.3.0
 blessed==1.20.0
 brax==0.1.0
-Brotli @ file:///home/conda/feedstock_root/build_artifacts/brotli-split_1695989787169/work
+Brotli==1.1.0
 cached-property==1.5.2
-certifi @ file:///home/conda/feedstock_root/build_artifacts/certifi_1720457958366/work/certifi
-cffi @ file:///home/conda/feedstock_root/build_artifacts/cffi_1723018404422/work
-charset-normalizer @ file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1698833585322/work
+certifi==2024.7.4
+cffi==1.17.0
+charset-normalizer==3.3.2
 chex==0.1.5
 click==8.1.7
 clip @ git+https://github.com/openai/CLIP.git@dcba3cb2e2827b402d2701e7e1c7d9fed8a20ef1
@@ -54,20 +54,20 @@ executing==2.0.1
 Farama-Notifications==0.0.4
 fastapi==0.115.12
 ffmpy==0.5.0
-filelock @ file:///home/conda/feedstock_root/build_artifacts/filelock_1719088281970/work
+filelock==3.15.4
 fire==0.7.0
 Flask==2.2.5
 Flask-Cors==4.0.1
 flax==0.6.1
 fonttools==4.53.1
 frozenlist==1.4.1
-fsspec @ file:///home/conda/feedstock_root/build_artifacts/fsspec_1719514913127/work
+fsspec==2024.6.1
 ftfy==6.3.1
 functorch==2.0.0
 gitdb==4.0.11
 GitPython==3.1.43
 glfw==2.7.0
-gmpy2 @ file:///home/conda/feedstock_root/build_artifacts/gmpy2_1715527292503/work
+gmpy2==2.1.5
 gpustat==1.1.1
 gradio==4.44.1
 gradio_client==1.3.0
@@ -77,13 +77,13 @@ gym==0.23.1
 gym-notices==0.0.8
 gymnasium==0.29.1
 h11==0.16.0
-h2 @ file:///home/conda/feedstock_root/build_artifacts/h2_1634280454336/work
+h2==4.1.0
 hpack==4.0.0
 httpcore==1.0.9
 httpx==0.28.1
 huggingface-hub==0.30.2
-hyperframe @ file:///home/conda/feedstock_root/build_artifacts/hyperframe_1619110129307/work
-idna @ file:///home/conda/feedstock_root/build_artifacts/idna_1713279365350/work
+hyperframe==6.0.1
+idna==3.7
 imageio==2.35.1
 imageio-ffmpeg==0.5.1
 importlib_metadata==8.2.0
@@ -92,8 +92,8 @@ inquirerpy==0.3.4
 ipykernel==6.29.5
 ipython==8.18.1
 itsdangerous==2.2.0
-jax @ file:///home/conda/feedstock_root/build_artifacts/jax_1668560959027/work
-jaxlib @ file:///mnt/data/wanzl/jaxlib-0.3.25%2Bcuda11.cudnn82-cp39-cp39-manylinux2014_x86_64.whl#sha256=e6ec3202ae161a62d50ad7da6c2173f772b69daef126d07ae547a08ba2157348
+jax==0.3.25
+jaxlib==0.3.25+cuda11.cudnn82
 jaxopt==0.5.5
 jedi==0.19.1
 jieba==0.42.1
@@ -111,24 +111,24 @@ lit==18.1.8
 -e git+https://github.com/hiyouga/LLaMA-Factory.git@75d7c35fdf4bfef6124df184d41e8425802e91e4#egg=llamafactory
 llvmlite==0.43.0
 markdown-it-py==3.0.0
-MarkupSafe @ file:///home/conda/feedstock_root/build_artifacts/markupsafe_1706899945820/work
+MarkupSafe==2.1.5
 matplotlib==3.7.5
 matplotlib-inline==0.1.7
 mdurl==0.1.2
 ml-dtypes==0.4.0
 ml_collections==0.1.1
 moviepy==1.0.3
-mpmath @ file:///home/conda/feedstock_root/build_artifacts/mpmath_1678228039184/work
+mpmath==1.3.0
 msgpack==1.0.8
 mujoco==3.2.0
 mujoco-mjx==3.2.0
 multidict==6.0.5
 multiprocess==0.70.16
 nest-asyncio==1.6.0
-networkx @ file:///home/conda/feedstock_root/build_artifacts/networkx_1698504735452/work
+networkx==3.2.1
 nltk==3.9.1
 numba==0.60.0
-numpy @ file:///home/conda/feedstock_root/build_artifacts/numpy_1707225342954/work/dist/numpy-1.26.4-cp39-cp39-linux_x86_64.whl#sha256=c799942b5898f6e6c60264d1663a6469a475290e758c654aeeb78e2596463abd
+numpy==1.26.4
 numpy-groupies==0.11.2
 nvidia-cublas-cu11==11.10.3.66
 nvidia-cuda-cupti-cu11==11.7.101
@@ -144,7 +144,7 @@ nvidia-nccl-cu11==2.14.3
 nvidia-nvtx-cu11==11.7.91
 omegaconf==2.3.0
 open_clip_torch==2.31.0
-opt-einsum @ file:///home/conda/feedstock_root/build_artifacts/opt_einsum_1696448916724/work
+opt-einsum==3.3.0
 optax==0.1.7
 orbax-checkpoint==0.5.23
 orjson==3.10.18
@@ -155,7 +155,7 @@ patsy==1.0.1
 peft==0.14.0
 pexpect==4.9.0
 pfzy==0.3.4
-pillow @ file:///home/conda/feedstock_root/build_artifacts/pillow_1719903566778/work
+pillow==10.4.0
 platformdirs==4.2.2
 pooch==1.8.2
 proglog==0.1.10
@@ -165,7 +165,7 @@ psutil==6.0.0
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pyarrow==20.0.0
-pycparser @ file:///home/conda/feedstock_root/build_artifacts/pycparser_1711811537435/work
+pycparser==2.22
 pydantic==2.10.6
 pydantic_core==2.27.2
 pydub==0.25.1
@@ -173,7 +173,7 @@ Pygments==2.18.0
 PyOpenGL==3.1.7
 pyparsing==3.1.2
 pyrsistent==0.20.0
-PySocks @ file:///home/conda/feedstock_root/build_artifacts/pysocks_1661604839144/work
+PySocks==1.7.1
 python-dateutil==2.9.0.post0
 python-multipart==0.0.20
 pytinyrenderer==0.0.14
@@ -184,15 +184,15 @@ qdax==0.2.1
 ray==2.34.0
 referencing==0.35.1
 regex==2024.11.6
-requests @ file:///home/conda/feedstock_root/build_artifacts/requests_1717057054362/work
--e git+https://github.com/vanzll/EBC@e192937edae87325d932e8481b4cfb17a89febda#egg=ribs&subdirectory=pyribs
+requests==2.32.3
+-e git+https://github.com/vanzll/EBC@9310f881d096084f83553270e8b5775545db2a13#egg=ribs&subdirectory=pyribs
 rich==13.7.1
 rouge-chinese==1.0.3
 rpds-py==0.19.1
 ruff==0.11.8
 safetensors==0.5.3
 scikit-learn==1.5.1
-scipy @ file:///home/conda/feedstock_root/build_artifacts/scipy-split_1716470218293/work/dist/scipy-1.13.1-cp39-cp39-linux_x86_64.whl#sha256=e6696cb8683d94467891b7648e068a3970f6bc0a1b3c1aa7f9bc89458eafd2f0
+scipy== 1.13.1
 seaborn==0.13.2
 semantic-version==2.10.0
 sentencepiece==0.2.0
@@ -224,7 +224,7 @@ tomlkit==0.12.0
 toolz==0.12.1
 torch==2.0.1
 torch_geometric==2.5.3
-torchvision @ file:///home/conda/feedstock_root/build_artifacts/torchvision_1718090955118/work
+torchvision==0.18.1a0+405940f
 tornado==6.4.1
 tqdm==4.66.5
 traitlets==5.14.3
@@ -233,10 +233,10 @@ trimesh==4.4.3
 triton==2.0.0
 trl==0.9.6
 typer==0.15.3
-typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_extensions_1717802530399/work
+typing_extensions==4.12.2
 tyro==0.8.14
 tzdata==2024.1
-urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1719391292974/work
+urllib3==2.2.2
 uvicorn==0.34.2
 virtualenv==20.26.3
 wandb==0.17.5
