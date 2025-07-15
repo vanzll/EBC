@@ -49,4 +49,15 @@ Inside the runner file, there are three lines that you should modify to get acce
 ### 3.2 Figures.
 
 The figure below shows the performance comparison of all four metrics across three environments.
-![Performance_Comparison](experiments_4_good_and_diverse_elite_with_measures_top500/combined__All_metrics.png)
+![Performance_Comparison](combined__All_metrics.png)
+
+## 4. Bibtex.
+If you found our work helpful, please consider to cite our work via:
+
+```
+@inproceedings{wandiversifying,
+  title={Diversifying Robot Locomotion Behaviors with Extrinsic Behavioral Curiosity},
+  author={Wan, Zhenglin and Yu, Xingrui and Bossens, David Mark and Lyu, Yueming and Guo, Qing and Fan, Flint Xiaofeng and Ong, Yew-Soon and Tsang, Ivor},
+  booktitle={Forty-second International Conference on Machine Learning}
+}
+```
