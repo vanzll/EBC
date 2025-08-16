@@ -1,4 +1,6 @@
-# ***ICML 2025***: Diversifying Robot Locomotion Behaviors with Extrinsic Behavioral Curiosity
+# ***ICML 2025***: Diversifying Policy Behaviors with Extrinsic Behavioral Curiosity  ([paper](https://arxiv.org/abs/2410.06151))
+
+
 
 ```markdown 
 Zhenglin Wan, Xingrui Yu, David Mark Bossens, Yueming Lyu, Qing Guo, Flint Xiaofeng Fan, Yew-Soon Ong, Ivor W. Tsang
@@ -6,8 +8,6 @@ Zhenglin Wan, Xingrui Yu, David Mark Bossens, Yueming Lyu, Qing Guo, Flint Xiaof
 
 ## 1. Introduction
 Extrinsic Behavior Curiosity (EBC) mechanism is a technique which enables the robot to learn a broad range of high-performing and **behavioral-diverse** policies via Quality Diversity (QD) Optimization. This repository contains the implementation of EBC and its QD base algorithm. 
-
-Some key components of this repository is adapted from [PPGA](https://arxiv.org/abs/2305.13795) paper.
 
 ## 2. Experiment
 
@@ -60,12 +60,20 @@ Inside the runner file, there are three lines that you should modify to get acce
 The figure below shows the performance comparison of all four metrics across three environments.
 ![Performance_Comparison](combined__All_metrics.png)
 
-## 4. Bibtex.
-If you found our work helpful, please consider to cite our work via:
+### 4. Acknowledgement.
+
+- Thanks [Brax](https://github.com/google/brax) for providing rigid body simulator.
+- Thanks [pyribs](https://github.com/icaros-usc/pyribs) for providing several base implementations of quality diversity optimization domain.
+- The implementation of base RL algorithms of this repository is adapted from [Cleanrl](https://github.com/vwxyzjn/cleanrl).
+- Some key components of this repository is adapted from [PPGA](https://arxiv.org/abs/2305.13795).
+  
+
+## 5. Citation.
+If you find our work helpful, please consider to star this repository and cite our work via:
 
 ```
-@misc{wan2025diversifyingrobotlocomotionbehaviors,
-      title={Diversifying Robot Locomotion Behaviors with Extrinsic Behavioral Curiosity}, 
+@misc{wan2025diversifyingpolicybehaviorsextrinsic,
+      title={Diversifying Policy Behaviors with Extrinsic Behavioral Curiosity}, 
       author={Zhenglin Wan and Xingrui Yu and David Mark Bossens and Yueming Lyu and Qing Guo and Flint Xiaofeng Fan and Yew Soon Ong and Ivor Tsang},
       year={2025},
       eprint={2410.06151},
