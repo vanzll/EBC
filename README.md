@@ -1,15 +1,20 @@
 # ***ICML 2025***: Diversifying Robot Locomotion Behaviors with Extrinsic Behavioral Curiosity
 
-```markdown 
-Zhenglin Wan, Xingrui Yu, David Mark Bossens, Yueming Lyu, Qing Guo, Flint Xiaofeng Fan, Yew-Soon Ong, Ivor W. Tsang
-```
 
-## 1. Introduction
-Extrinsic Behavior Curiosity (EBC) mechanism is a technique which enables the robot to learn a broad range of high-performing and **behavioral-diverse** policies via Quality Diversity (QD) Optimization. This repository contains the implementation of EBC and its QD base algorithm. 
+*Zhenglin Wan, Xingrui Yu, David Mark Bossens, Yueming Lyu, Qing Guo, Flint Xiaofeng Fan, Yew-Soon Ong, Ivor W. Tsang* 
 
-Some key components of this repository is adapted from [PPGA](https://arxiv.org/abs/2305.13795) paper.
+             Centre for Frontier AI Research (CFAR), A*STAR, Singapore
 
-## 2. Experiment
+<h1 align="center"> 
+    <img src="./framework.png" width="1000">
+</h1>
+
+## 1. Short Introduction
+Extrinsic Behavior Curiosity (EBC) mechanism is a technique which enables the robot to learn a broad range of high-performing and **behavioral-diverse** policies via Quality Diversity (QD) Optimization. EBC could be seamlessly integrated into **any** Reinforcement Learning (RL) and Inverse Reinforcement Learning (IRL) algorithm, providing a generic techniques to enhance robot learning in terms of diversity. This repository contains the implementation of EBC and its QD base algorithm. 
+
+
+
+## 2. Quick Start
 
 ### 2.0 Clone the repository.
 Run below command in your terminal:
@@ -20,26 +25,44 @@ cd EBC
 ```
 
 ### 2.1 Installing key packages.
-Simply run below command line:
+Firstly, run below command to obtain basic packages required:
 ```python
-conda create -n QD-EBC python==3.9.19
-conda activate QD-EBC
-pip install -r requirements.txt
+conda env create -f ebc.yml
+conda activate ebc
+pip install -e pyribs/
+```
+Then install the specific version of jaxlib with CUDA support:
+
+```
+# for CUDA 11 and cuDNN 8.2 or newer
+wget https://storage.googleapis.com/jax-releases/cuda11/jaxlib-0.3.25+cuda11.cudnn82-cp39-cp39-manylinux2014_x86_64.whl
+pip install jaxlib-0.3.25+cuda11.cudnn82-cp39-cp39-manylinux2014_x86_64.whl
+
+# OR 
+
+# for CUDA 11 and cuDNN 8.0.5 or newer 
+wget https://storage.googleapis.com/jax-releases/cuda11/jaxlib-0.3.25+cuda11.cudnn805-cp39-cp39-manylinux2014_x86_64.whl
+pip install jaxlib-0.3.25+cuda11.cudnn805-cp39-cp39-manylinux2014_x86_64.whl
 ```
 
 
 ### 2.2 Reproduce the results.
 We provided runner files for your convenience to reproduce the results.
 
+- QD-IRL:
 ```python 
-source runners/local/train_il_ppga_halfcheetah.sh
-source runners/local/train_il_ppga_humanoid.sh
-source runners/local/train_il_ppga_walker2d.sh
+source runners/local/train_il_ebc_halfcheetah.sh
+source runners/local/train_il_ebc_humanoid.sh
+source runners/local/train_il_ebc_walker2d.sh
 ```
 
+- QD-RL
+```python 
+source runners/local/train_rl_ebc_humanoid.sh
+```
 Inside the runner file, there are three lines that you should modify to get access to results with different settings:
 - 1. SEED: run the experients with multiple random seeds to justify the results.
-- 2. intrinsic_module: gail, vail or diffail, corresponding to three base IL methods in the paper.
+- 2. intrinsic_module (for IL methods): gail, vail or diffail, corresponding to three base IL methods in the paper.
 - 3. archive_bonus: true or false, corresponding to EBC-improved version or baseline version of IL methods.
 
 ## 3. Results.
@@ -60,7 +83,13 @@ Inside the runner file, there are three lines that you should modify to get acce
 The figure below shows the performance comparison of all four metrics across three environments.
 ![Performance_Comparison](combined__All_metrics.png)
 
-## 4. Bibtex.
+## 4. Acknowledgements.
+- The GPU-accelerated rigid body simulator is adapted from [Brax](https://github.com/google/brax).
+- The key contribution of our work is built on QD library [pyribs](https://github.com/icaros-usc/pyribs).
+- The vectorized RL training pipeline of this repository is inspired by [PPGA](https://arxiv.org/abs/2305.13795) paper.
+- The RL, IL algorithms of this repository are partly adapted from [cleanrl](https://github.com/vwxyzjn/cleanrl).
+
+## 5. Bibtex.
 If you found our work helpful, please consider to cite our work via:
 
 ```

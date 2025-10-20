@@ -257,7 +257,7 @@ class GridArchive(ArchiveBase):
         grid_idx = self.int_to_grid_index(idx)  
         
         if self.cfg is not None and self.cfg.bonus_smooth == False:
-            print('bonus_smooth is False')
+            #print('bonus_smooth is False')
             p, q = self.cfg.p, self.cfg.q
             
            
@@ -284,7 +284,7 @@ class GridArchive(ArchiveBase):
         density = np.exp(log_density)  
         bonus = -np.log(np.clip(density,a_min=0.1, a_max=None))
         
-        # Step 6: 返回计算结果
+    
         return bonus
 
     def cal_coef(self, expert_measures):
