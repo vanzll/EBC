@@ -54,7 +54,7 @@ pip install jaxlib-0.3.25+cuda11.cudnn805-cp39-cp39-manylinux2014_x86_64.whl
 
 
 ### 2.2 Reproduce the results.
-We provided runner files for your convenience to reproduce the results.
+We provided runner files for your convenience to reproduce the results. You can find the results in experiments_4_good_and_diverse_elite_with_measures_top500/{env_method}/{seed}/summary.csv
 
 - QD-IRL:
 ```python 
