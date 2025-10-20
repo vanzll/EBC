@@ -73,7 +73,7 @@ Inside the runner file, there are three lines that you should modify to get acce
 - 3. archive_bonus: true or false, corresponding to EBC-improved version or baseline version of IL methods.
 
 ## 3. Results.
-
+The main results of QD-IRL are shown below. For more results, please refer to our published paper.
 ### 3.1 Quantative results.
 
 | Method              | Halfcheetah QD-Score      | Walker2d QD-Score        | Humanoid QD-Score        |
@@ -96,7 +96,7 @@ The figure below shows the performance comparison of all four metrics across thr
 - The vectorized RL training pipeline of this repository is inspired by [PPGA](https://arxiv.org/abs/2305.13795) paper.
 - The RL, IL algorithms of this repository are partly adapted from [cleanrl](https://github.com/vwxyzjn/cleanrl).
 
-## 5. Bibtex.
+## 5. Cite.
 If you found our work helpful, please consider to cite our work via:
 
 ```
