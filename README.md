@@ -3,7 +3,7 @@
 
 *Zhenglin Wan, Xingrui Yu, David Mark Bossens, Yueming Lyu, Qing Guo, Flint Xiaofeng Fan, Yew-Soon Ong, Ivor W. Tsang* 
 
-             Centre for Frontier AI Research (CFAR), A*STAR, Singapore
+**Centre for Frontier AI Research (CFAR), A\*STAR, Singapore**
 
 <h1 align="center"> 
     <img src="./framework.png" width="1000">
@@ -16,8 +16,15 @@ Extrinsic Behavior Curiosity (EBC) mechanism is a technique which enables the ro
 
 ## 2. Quick Start
 
-### 2.0 Clone the repository.
-Run below command in your terminal:
+### 2.0 Fork and Clone the repository.
+[Recommended] Fork this repository to your own github account, and clone it to local:
+```
+git clone [the address of forked repository]
+cd EBC
+```
+
+
+Or directly run below command in your terminal:
 
 ```
 git clone https://github.com/vanzll/EBC.git
