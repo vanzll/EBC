@@ -1,4 +1,4 @@
-# ***ICML 2025***: Diversifying Robot Locomotion Behaviors with Extrinsic Behavioral Curiosity
+# ***ICML 2025***: Diversifying Policy Behaviors with Extrinsic Behavioral Curiosity
 
 
 *Zhenglin Wan, Xingrui Yu, David Mark Bossens, Yueming Lyu, Qing Guo, Flint Xiaofeng Fan, Yew-Soon Ong, Ivor W. Tsang* 
@@ -100,8 +100,8 @@ The figure below shows the performance comparison of all four metrics across thr
 If you found our work helpful, please consider to cite our work via:
 
 ```
-@misc{wan2025diversifyingrobotlocomotionbehaviors,
-      title={Diversifying Robot Locomotion Behaviors with Extrinsic Behavioral Curiosity}, 
+@misc{wan2025diversifying,
+      title={Diversifying Policy Behaviors with Extrinsic Behavioral Curiosity}, 
       author={Zhenglin Wan and Xingrui Yu and David Mark Bossens and Yueming Lyu and Qing Guo and Flint Xiaofeng Fan and Yew Soon Ong and Ivor Tsang},
       year={2025},
       eprint={2410.06151},
